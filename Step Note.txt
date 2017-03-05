@@ -1,0 +1,4 @@
+Step 01
+- Create constant numbers
+--- Mode indicator
+--- Character count indicator
