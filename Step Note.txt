@@ -8,3 +8,6 @@ Step 02
 --- Add attribute to convert to int
 - Add BitBuffer class
 - Try to encode Alphanumeric
+
+Step 03
+- Calculate maximum capacity and fill data

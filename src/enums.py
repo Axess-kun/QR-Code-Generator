@@ -50,3 +50,11 @@ class EncodeSize_L(Enum):
 # Alphanumeric
 #------------------------------
 AlphaNum = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:'
+
+#------------------------------
+# Error Correction Level
+#------------------------------
+class ErrorCorrection(Enum):
+    L, M, Q, H = range(4)
+    def __int__(self):
+        return self.value

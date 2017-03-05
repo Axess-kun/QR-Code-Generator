@@ -30,12 +30,21 @@ class BitBuffer:
 
     # Return buffer as String
     def bitstr(self):
+        return self.to_str(self.buffer)
+
+    # Convert form list to string
+    def to_str(self, buf_list):
         s = ''
-        for i in range(len(self.buffer)):
-            s += str(self.buffer[i])
+        for i in range(len(buf_list)):
+            s += str(buf_list[i])
         return s
 
     # Debug
     def dbg_str(self):
         for i in range(len(self.dbg_buff)):
             print(self.dbg_buff[i])
+
+    def dbg_str8(self):
+        for i in range(0, len(self.buffer), 8):
+            group = self.buffer[i:i+8]
+            print(self.to_str(group))

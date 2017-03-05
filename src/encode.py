@@ -1,5 +1,6 @@
 from src.BitBuffer import BitBuffer
 from src.enums import *
+from src.blocks import *
 
 def enc(string : str):
     buff = BitBuffer()
@@ -43,7 +44,57 @@ def enc(string : str):
     print(buff.bitstr())
     print('length: {0}'.format(len(buff)))
     buff.dbg_str()
+    
+
+    #------------------------------
+    # Determine the Required Number of Bits for this QR Code
+    #------------------------------
+    blocks = blockinfo(1, ErrorCorrection.Q) # Try @ Version 1 & Error Correction Level = Q
+    maxbit = 0
+    for i in range(len(blocks)):
+        maxbit += blocks[i].noOfBlocks * blocks[i].dataCodeword * 8
+    
+    print('maxbit: {0}'.format(maxbit))
+
+    #------------------------------
+    # Add a Terminator
+    #------------------------------
+    bufflen = len(buff)
+    if bufflen < maxbit:
+        diff = maxbit - bufflen
+        if diff >= 4:
+            buff.put(0,4)
+        else:
+            buff.put(0,diff)
+    del bufflen
+
+    print('terminater added len: {0}'.format(len(buff)))
+    #------------------------------
+    # Add More 0s to Make the Length a Multiple of 8
+    #------------------------------
+    remain = len(buff) % 8
+    if remain != 0:
+        buff.put(0,8-remain)
+    del remain
+
+    print('multiple of 8 len: {0}'.format(len(buff)))
+    #------------------------------
+    # Add Pad Bytes if the String is Still too Short
+    #------------------------------
+    diff = maxbit - len(buff)
+    if diff > 0:
+        fill = [0b11101100, 0b00010001] # 236 and 17, respectively
+        for i in range(diff // 8):
+            buff.put(fill[i%2],8)
+    del diff
+
+
+    print('fill cap len: {0}'.format(len(buff)))
+
+    #buff.dbg_str()
+    buff.dbg_str8()
     print('------------------------------')
+    
     
     try:
         input("Press enter to continue")

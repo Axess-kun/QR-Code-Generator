@@ -35,6 +35,9 @@
     <Compile Include="src\BitBuffer.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="src\blocks.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="src\encode.py">
       <SubType>Code</SubType>
     </Compile>
