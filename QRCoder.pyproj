@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>618a4bc4-09cf-409b-bb8d-115c2f14b128</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>src\enums.py</StartupFile>
+    <StartupFile>main.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -29,6 +29,15 @@
     <Folder Include="src\" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="main.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="src\BitBuffer.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="src\encode.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="src\enums.py">
       <SubType>Code</SubType>
     </Compile>

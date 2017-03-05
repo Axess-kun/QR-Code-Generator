@@ -2,3 +2,9 @@ Step 01
 - Create constant numbers
 --- Mode indicator
 --- Character count indicator
+
+Step 02
+- Edit enums.py
+--- Add attribute to convert to int
+- Add BitBuffer class
+- Try to encode Alphanumeric
