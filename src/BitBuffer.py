@@ -39,6 +39,17 @@ class BitBuffer:
             s += str(buf_list[i])
         return s
 
+    # Get groups of byte as decimal integer
+    def getByteGroups(self):
+        groups = []
+        for i in range(0, len(self.buffer), 8):
+            group = self.buffer[i:i+8]
+            byte = 0
+            for j in range(8):
+                byte |= group[j] << (7-j)
+            groups.append(byte)
+        return groups
+
     # Debug
     def dbg_str(self):
         for i in range(len(self.dbg_buff)):

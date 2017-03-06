@@ -2,7 +2,7 @@ import sys
 from src.encode import enc
 
 def main():
-    enc('ABCDE123')
+    #enc('ABCDE123')
     enc('HELLO WORLD')
     
 

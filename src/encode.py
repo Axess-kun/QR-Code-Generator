@@ -1,6 +1,7 @@
 from src.BitBuffer import BitBuffer
 from src.enums import *
 from src.blocks import *
+from src.gf256 import Polynomial
 
 def enc(string : str):
     buff = BitBuffer()
@@ -49,7 +50,7 @@ def enc(string : str):
     #------------------------------
     # Determine the Required Number of Bits for this QR Code
     #------------------------------
-    blocks = blockinfo(1, ErrorCorrection.Q) # Try @ Version 1 & Error Correction Level = Q
+    blocks = blockinfo(1, ErrorCorrection.M) # Try @ Version 1 & Error Correction Level = Q
     maxbit = 0
     for i in range(len(blocks)):
         maxbit += blocks[i].noOfBlocks * blocks[i].dataCodeword * 8
@@ -92,8 +93,15 @@ def enc(string : str):
     print('fill cap len: {0}'.format(len(buff)))
 
     #buff.dbg_str()
-    buff.dbg_str8()
+    #buff.dbg_str8()
+    #print(buff.getByteGroups())
     print('------------------------------')
+
+    msg = Polynomial(buff.getByteGroups())
+    ecCodeword = blocks[0].ecCodeword
+    gen = Polynomial.getGenerator(ecCodeword)
+    newmsg = Polynomial(msg, ecCodeword)
+    print(newmsg % gen)
     
     
     try:
