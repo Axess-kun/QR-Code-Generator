@@ -16,3 +16,4 @@ Step 04
 - Log Antilog table
 - GF(256) Polynomial
 --- Multiplication
+--- Polynomial long division
