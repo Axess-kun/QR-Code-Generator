@@ -1,16 +1,16 @@
 class BitBuffer:
     # Declare & initialize variable
     def __init__(self):
+        # Buffer, store each item as 8-bit data
         self.buffer = []
-        # Debug
-        self.dbg_buff = [] # Type: List of string
+        # Now buffer's length
+        self.length = 0
 
     # Put number in length-bit
     # Parameters:
     #   num    : number to put
     #   length : length of bit to put number into
     def put(self, num, length):
-        temp = '' # Debug
         # Inverse right-shift loop to find that position bit from left-to-right
         for i in range(length):
             # Determine 'how many position' to shift
@@ -20,42 +20,41 @@ class BitBuffer:
             bitToPut = (num >> shift) & 1
 
             # Put that bit into buffer
-            self.buffer.append(bitToPut)
-            temp += str(bitToPut) # Debug
-        self.dbg_buff.append(temp) # Debug
+            self.putBit(bitToPut)
+
+    # Put each bit in 8-bit index
+    def putBit(self, bit):
+        # Finding now item's index
+        itemIndex = self.length // 8
+
+        # Check no. of items in buffer
+        # If less than or equal to index, create 0 (to do OR operation)
+        if len(self.buffer) <= itemIndex:
+            self.buffer.append(0)
+        # If bit to store is 1
+        if bit:
+            # Store after last one
+            self.buffer[itemIndex] |= (0x80 >> (self.length % 8))
+        # Either 0 or 1, after put it, the length will increased
+        self.length += 1
+
 
     # Return length of buffer
     def __len__(self):
-        return len(self.buffer)
+        return self.length
 
-    # Return buffer as String
-    def bitstr(self):
-        return self.to_str(self.buffer)
+    # bitBuffer[n]
+    def __getitem__(self, n):
+        return self.buffer[n]
 
-    # Convert form list to string
-    def to_str(self, buf_list):
-        s = ''
-        for i in range(len(buf_list)):
-            s += str(buf_list[i])
-        return s
+    # Debug print()
+    def __str__(self):
+        return str(self.buffer)
+    
 
-    # Get groups of byte as decimal integer
-    def getByteGroups(self):
-        groups = []
-        for i in range(0, len(self.buffer), 8):
-            group = self.buffer[i:i+8]
-            byte = 0
-            for j in range(8):
-                byte |= group[j] << (7-j)
-            groups.append(byte)
-        return groups
-
-    # Debug
-    def dbg_str(self):
-        for i in range(len(self.dbg_buff)):
-            print(self.dbg_buff[i])
-
-    def dbg_str8(self):
-        for i in range(0, len(self.buffer), 8):
-            group = self.buffer[i:i+8]
-            print(self.to_str(group))
+# Debug
+#buff = BitBuffer()
+#buff.put(2,4) #0010 0000 = 32
+#buff.put(2,3) #0010 0100 = 36
+#buff.put(11,9) #0010 0100 0000 1011 = 36, 11
+#print(buff)

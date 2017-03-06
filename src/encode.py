@@ -42,9 +42,8 @@ def enc(string : str):
             buff.put(num, 6)
     
     print('string: {0:s}'.format(string))
-    print(buff.bitstr())
+    print(buff)
     print('length: {0}'.format(len(buff)))
-    buff.dbg_str()
     
 
     #------------------------------
@@ -92,15 +91,13 @@ def enc(string : str):
 
     print('fill cap len: {0}'.format(len(buff)))
 
-    #buff.dbg_str()
-    #buff.dbg_str8()
-    #print(buff.getByteGroups())
+    #print(buff)
     print('------------------------------')
 
     #------------------------------
     # Error Correction Coding
     #------------------------------
-    msg = Polynomial(buff.getByteGroups())
+    msg = Polynomial(buff[:])
     ecCodeword = blocks[0].ecCodeword
     gen = Polynomial.getGenerator(ecCodeword)
     newmsg = Polynomial(msg, ecCodeword)
@@ -114,7 +111,7 @@ def enc(string : str):
     for i in range(len(errCode)):
         buff.put(errCode[i], 8)
 
-    print(buff.getByteGroups())
+    print(buff)
     print('------------------------------')
 
 
@@ -136,13 +133,13 @@ def enc(string : str):
         large[3].put(set4[i],8)
     
     # Debug Show
-    #for i in range(4):
-    #    print(large[i].getByteGroups())
+    for i in range(4):
+        print(large[i])
 
     rs5q = blockinfo(5, ErrorCorrection.Q)
     errCodes = []
     for i in range(4):
-        msg = Polynomial(large[i].getByteGroups())
+        msg = Polynomial(large[i][:])
         ecCodeword = rs5q[0].ecCodeword
         gen = Polynomial.getGenerator(ecCodeword)
         newmsg = Polynomial(msg, ecCodeword)
@@ -152,47 +149,47 @@ def enc(string : str):
         errCodes.append(errCode)
 
     # Debug Show
-    #for i in range(4):
-    #    print(large[i].getByteGroups())
+    for i in range(4):
+        print(errCodes[i])
 
     #------------------------------
     # Interleave the Data Codewords & Error Correction Codewords
     #------------------------------
-    interleave = []
-    # Create new 2-D array to store data codewords table
-    dataTable = [0] * 4
-    errTable = [0] * 4
+    #interleave = []
+    ## Create new 2-D array to store data codewords table
+    #dataTable = [0] * 4
+    #errTable = [0] * 4
 
-    maxDataCodeword = 0
-    maxErrorCodeword = 0
-    for i in range(len(large)):
-        maxDataCodeword = max(maxDataCodeword, len(large[i].getByteGroups()))
-        maxErrorCodeword = max(maxErrorCodeword, len(errCodes[i]))
-        dataTable[i] = [0] * len(large[i].getByteGroups())
-        errTable[i] = [0] * len(errCodes[i])
+    #maxDataCodeword = 0
+    #maxErrorCodeword = 0
+    #for i in range(len(large)):
+    #    maxDataCodeword = max(maxDataCodeword, len(large[i]))
+    #    maxErrorCodeword = max(maxErrorCodeword, len(errCodes[i]))
+    #    dataTable[i] = [0] * len(large[i])
+    #    errTable[i] = [0] * len(errCodes[i])
 
     
-    # Store in table
-    for i in range(len(large)):
-        for j in range(len(large[i].getByteGroups())):
-            dataTable[i][j] = large[i].getByteGroups()[j]
+    ## Store in table
+    #for i in range(len(large)):
+    #    for j in range(len(large[i])):
+    #        dataTable[i][j] = large[i][j]
 
-    for i in range(len(errCodes)):
-        for j in range(len(errCodes[i])):
-            errTable[i][j] = errCodes[i][j]
+    #for i in range(len(errCodes)):
+    #    for j in range(len(errCodes[i])):
+    #        errTable[i][j] = errCodes[i][j]
 
-    newsort = []
-    for i in range(maxDataCodeword):
-        for j in range(len(dataTable)):
-            if i < len(dataTable[j]):
-                newsort.append(dataTable[j][i])
+    #newsort = []
+    #for i in range(maxDataCodeword):
+    #    for j in range(len(dataTable)):
+    #        if i < len(dataTable[j]):
+    #            newsort.append(dataTable[j][i])
 
-    for i in range(maxErrorCodeword):
-        for j in range(len(errTable)):
-            if i < len(errTable[j]):
-                newsort.append(errTable[j][i])
+    #for i in range(maxErrorCodeword):
+    #    for j in range(len(errTable)):
+    #        if i < len(errTable[j]):
+    #            newsort.append(errTable[j][i])
 
-    print(newsort)
+    #print(newsort)
 
     try:
         input("Press enter to continue")
