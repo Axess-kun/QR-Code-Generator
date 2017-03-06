@@ -97,11 +97,24 @@ def enc(string : str):
     #print(buff.getByteGroups())
     print('------------------------------')
 
+    #------------------------------
+    # Error Correction Coding
+    #------------------------------
     msg = Polynomial(buff.getByteGroups())
     ecCodeword = blocks[0].ecCodeword
     gen = Polynomial.getGenerator(ecCodeword)
     newmsg = Polynomial(msg, ecCodeword)
-    print(newmsg % gen)
+    errCode = (newmsg % gen)[:]
+
+    del msg, gen, newmsg, ecCodeword
+
+    #------------------------------
+    # Structure Final Message (One block of data codewords)
+    #------------------------------
+    for i in range(len(errCode)):
+        buff.put(errCode[i], 8)
+
+    print(buff.getByteGroups())
     
     
     try:
