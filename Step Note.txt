@@ -26,3 +26,7 @@ Step 05
 - Reconstruct BitBuffer class
 - Reconstruct RSBlock class
 - Add remainder bit constants
+
+Step 06
+- Create QR Module
+--- Add Finder Patterns

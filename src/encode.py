@@ -2,6 +2,7 @@ from src.BitBuffer import BitBuffer
 from src.enums import *
 from src.blocks import *
 from src.gf256 import Polynomial
+from src.module_placement import *
 
 #----------
 # EC Coding for each block & Create final sequence
@@ -222,13 +223,14 @@ def enc(string : str):
     #------------------------------
     # Add Remainder Bits if Necessary
     #------------------------------
-    version = 5
     final = BitBuffer()
     final.copyList(largemsg)
     if RemainderBits[version-1] > 0:
         final.put(0, RemainderBits[version-1])
     print('----- final -----')
     print(final)
+
+
 
 
     try:

@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>618a4bc4-09cf-409b-bb8d-115c2f14b128</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>main.py</StartupFile>
+    <StartupFile>src\module_placement.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -45,6 +45,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="src\gf256.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="src\module_placement.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="src\__init__.py">
