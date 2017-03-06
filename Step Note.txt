@@ -30,3 +30,4 @@ Step 05
 Step 06
 - Create QR Module
 --- Add Finder Patterns
+--- Add Separators

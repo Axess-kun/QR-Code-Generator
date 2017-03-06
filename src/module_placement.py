@@ -27,9 +27,10 @@ class Module:
         #------------------------------
         # Paint Patterns
         #------------------------------
-        self.paintFinderPattern(0, 0)
-        self.paintFinderPattern(self.size - 7, 0)
-        self.paintFinderPattern(0, self.size - 7)
+        # Finder Pattern & Separators
+        self.paintFinderSeparatorPattern(0, 0)
+        self.paintFinderSeparatorPattern(self.size - 7, 0)
+        self.paintFinderSeparatorPattern(0, self.size - 7)
 
         # Blank Canvas
         canvas = Image.new("RGB", (self.size, self.size), bg)
@@ -41,20 +42,23 @@ class Module:
 
         # Save
         #canvas.save("QR.jpg", "JPEG", quality=100, optimize=True)
-        canvas.save("QR.png", "PNG", optimize=True)
+        filename = "QR_" + str(version) + ".png"
+        canvas.save(filename, "PNG", optimize=True)
 
     #------------------------------
-    # Finder Patterns
+    # Finder Patterns & Separators
     #------------------------------
-    def paintFinderPattern(self, row, col):
-        for r in range(0, 7):
+    def paintFinderSeparatorPattern(self, row, col):
+        # Loop in 0 ~ 7 for Finder Pattern
+        # Loop at -1, 8 for Separators
+        for r in range(-1, 8):
             # Out of range
-            if (row + r) < 0 or (row + r > self.size):
+            if (row + r) < 0 or (row + r) >= self.size:
                 continue
             
-            for c in range(0, 7):
+            for c in range(-1, 8):
                 # Out of range
-                if (col + c) < 0 or (col + c) > self.size:
+                if (col + c) < 0 or (col + c) >= self.size:
                     continue
 
                 if (
@@ -71,5 +75,5 @@ class Module:
                     self.modules[row + r][col + c] = self.int2rgb(0xFFFFFF)
 
     
-
 Module(1)
+Module(18)
