@@ -41,7 +41,10 @@ class Polynomial:
     # Parameters:
     #   coefficients: list of coefficients, NOT alpha notations
     #     eg. a3*x2 + a27*x1 + a0 --> [8,12,1]
-    def __init__(self, coefficients: list):
+    #   termShift: Error Correction Codewords
+    #     To make sure that the exponent of the lead term doesn't become too small during the division,
+    #     multiply the message polynomial by xn where n is the number of error correction codewords that are needed.
+    def __init__(self, coefficients: list, termShift = 0):
         # Offset to kill first(front) term(s) that coefficient is 0 until it not
         offset = 0
         for i in range(len(coefficients)):
@@ -50,7 +53,7 @@ class Polynomial:
             offset += 1
 
         # Create blank list
-        self.coefficients = [0] * (len(coefficients) - offset)
+        self.coefficients = [0] * (len(coefficients) - offset + termShift)
 
         # Copy to class' member
         for i in range(len(coefficients) - offset):
@@ -111,9 +114,11 @@ b = Polynomial([1,3,2])
 c = a%b
 print(c.coefficients) # Should be 0
 print('---------')
-#d = Polynomial([32, 91, 11, 120, 209, 114, 220, 77, 67, 64, 236, 17, 236, 17, 236, 17])
+d = Polynomial([32, 91, 11, 120, 209, 114, 220, 77, 67, 64, 236, 17, 236, 17, 236, 17])
 e = Polynomial.getGenerator(10) # Shoud be 1, 216, 194, 159, 111, 199, 94, 95, 113, 157, 193
 print(e.coefficients)
-#f = d%e
-#print(f.coefficients) # Should be 196, 35, 39, 119, 235, 215, 231, 226, 93, 23
+msg = Polynomial(d.coefficients, len(e.coefficients) - 1)
+print(msg.coefficients)
+f = msg%e
+print(f.coefficients) # Should be 196, 35, 39, 119, 235, 215, 231, 226, 93, 23
 print('---------')
