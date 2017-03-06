@@ -60,9 +60,9 @@ def structFinalMsg(buffer : BitBuffer, blockInfos : RSBlock):
                 interleaved.append(ecTable[block][column])
 
     # Debug
-    print(interleaved)
+    #print(interleaved)
 
-
+    return interleaved
 
 
 
@@ -72,6 +72,9 @@ def structFinalMsg(buffer : BitBuffer, blockInfos : RSBlock):
 
 
 def enc(string : str):
+    version = 1
+    ecLevel = ErrorCorrection.M
+
     buff = BitBuffer()
 
     # TODO: determine string type & strlen, then select mode & version to encode
@@ -117,7 +120,7 @@ def enc(string : str):
     #------------------------------
     # Determine the Required Number of Bits for this QR Code
     #------------------------------
-    blocks = blockinfo(1, ErrorCorrection.M) # Try @ Version 1 & Error Correction Level = Q
+    blocks = blockinfo(version, ecLevel)
     maxbit = 0
     for i in range(len(blocks)):
         maxbit += blocks[i].noDataCodeword * 8
@@ -181,7 +184,8 @@ def enc(string : str):
 
     #print(buff)
 
-    structFinalMsg([buff], blocks)
+    smallmsg = structFinalMsg([buff], blocks)
+    #print(smallmsg)
     print('------------------------------')
 
 
@@ -207,8 +211,24 @@ def enc(string : str):
     #    print(large[i])
 
     
-    rsInfo = blockinfo(5, ErrorCorrection.Q)
-    structFinalMsg(large, rsInfo)
+    version = 5
+    ecLevel = ErrorCorrection.Q
+
+
+    rsInfo = blockinfo(version, ecLevel)
+    largemsg = structFinalMsg(large, rsInfo)
+    #print(largemsg)
+    print('------------------------------')
+    #------------------------------
+    # Add Remainder Bits if Necessary
+    #------------------------------
+    version = 5
+    final = BitBuffer()
+    final.copyList(largemsg)
+    if RemainderBits[version-1] > 0:
+        final.put(0, RemainderBits[version-1])
+    print('----- final -----')
+    print(final)
 
 
     try:

@@ -25,3 +25,4 @@ Step 05
 ----- Interleave data & error correction codewords
 - Reconstruct BitBuffer class
 - Reconstruct RSBlock class
+- Add remainder bit constants

@@ -38,6 +38,16 @@ class BitBuffer:
         # Either 0 or 1, after put it, the length will increased
         self.length += 1
 
+    # Copy from type(BitBuffer) using operator =
+    def __eq__(self, other):
+        if isinstance(other, BitBuffer):
+            self.buffer = other.buffer[:]
+            self.length = other.length
+
+    # Copy from type(list)
+    def copyList(self, byteList = []):
+        self.buffer = byteList[:]
+        self.length = len(byteList) * 8
 
     # Return length of buffer
     def __len__(self):
