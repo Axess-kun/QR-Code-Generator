@@ -31,3 +31,4 @@ Step 06
 - Create QR Module
 --- Add Finder Patterns
 --- Add Separators
+--- Add Alignment Patterns
