@@ -17,5 +17,9 @@ Step 04
 - GF(256) Polynomial
 --- Multiplication
 --- Polynomial long division
-- Get groups of byte from buffer
-- Added error correction codewords in Reed-Solomon block
+
+Step 05
+- Structure Final Message
+--- One block codeword
+--- Many blocks
+----- Interleave data & error correction codewords

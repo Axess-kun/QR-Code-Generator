@@ -115,8 +115,85 @@ def enc(string : str):
         buff.put(errCode[i], 8)
 
     print(buff.getByteGroups())
+    print('------------------------------')
+
+
+    print('-------- DEBUG 5-Q ------')
+    #------------------------------
+    # Structure Final Message (Large data codewords)
+    #------------------------------
+# Debug
+    large = [BitBuffer(), BitBuffer(), BitBuffer(), BitBuffer()]
+    set1 = [67,85,70,134,87,38,85,194,119,50,6,18,6,103,38]
+    set2 = [246,246,66,7,118,134,242,7,38,86,22,198,199,146,6]
+    for i in range(15):
+        large[0].put(set1[i],8)
+        large[1].put(set2[i],8)
+    set3 = [182,230,247,119,50,7,118,134,87,38,82,6,134,151,50,7]
+    set4 = [70,247,118,86,194,6,151,50,16,236,17,236,17,236,17,236]
+    for i in range(16):
+        large[2].put(set3[i],8)
+        large[3].put(set4[i],8)
     
+    # Debug Show
+    #for i in range(4):
+    #    print(large[i].getByteGroups())
+
+    rs5q = blockinfo(5, ErrorCorrection.Q)
+    errCodes = []
+    for i in range(4):
+        msg = Polynomial(large[i].getByteGroups())
+        ecCodeword = rs5q[0].ecCodeword
+        gen = Polynomial.getGenerator(ecCodeword)
+        newmsg = Polynomial(msg, ecCodeword)
+        errCode = (newmsg % gen)[:]
+        # Debug Show
+        #print(errCode)
+        errCodes.append(errCode)
+
+    # Debug Show
+    #for i in range(4):
+    #    print(large[i].getByteGroups())
+
+    #------------------------------
+    # Interleave the Data Codewords & Error Correction Codewords
+    #------------------------------
+    interleave = []
+    # Create new 2-D array to store data codewords table
+    dataTable = [0] * 4
+    errTable = [0] * 4
+
+    maxDataCodeword = 0
+    maxErrorCodeword = 0
+    for i in range(len(large)):
+        maxDataCodeword = max(maxDataCodeword, len(large[i].getByteGroups()))
+        maxErrorCodeword = max(maxErrorCodeword, len(errCodes[i]))
+        dataTable[i] = [0] * len(large[i].getByteGroups())
+        errTable[i] = [0] * len(errCodes[i])
+
     
+    # Store in table
+    for i in range(len(large)):
+        for j in range(len(large[i].getByteGroups())):
+            dataTable[i][j] = large[i].getByteGroups()[j]
+
+    for i in range(len(errCodes)):
+        for j in range(len(errCodes[i])):
+            errTable[i][j] = errCodes[i][j]
+
+    newsort = []
+    for i in range(maxDataCodeword):
+        for j in range(len(dataTable)):
+            if i < len(dataTable[j]):
+                newsort.append(dataTable[j][i])
+
+    for i in range(maxErrorCodeword):
+        for j in range(len(errTable)):
+            if i < len(errTable[j]):
+                newsort.append(errTable[j][i])
+
+    print(newsort)
+
     try:
         input("Press enter to continue")
     except SyntaxError:
