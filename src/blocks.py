@@ -51,10 +51,9 @@ RS_BLOCK_TABLE = [
 ]
 
 class RSBlock:
-    def __init__(self, noOfBlocks, dataCodeword, ecCodeword):
-        self.noOfBlocks = noOfBlocks
-        self.dataCodeword = dataCodeword
-        self.ecCodeword = ecCodeword
+    def __init__(self, noDataCodeword, noEcCodeword):
+        self.noDataCodeword = noDataCodeword
+        self.noEcCodeword = noEcCodeword
 
 def blockinfo(version, errorCorrection : ErrorCorrection):
     offset = int(errorCorrection)
@@ -63,6 +62,7 @@ def blockinfo(version, errorCorrection : ErrorCorrection):
     blocks = []
     for i in range(0, len(info), 3):
         noOfBlocks, dataCodeword, ecCodeword = info[i:i+3]
-        blocks.append(RSBlock(noOfBlocks, dataCodeword, ecCodeword))
+        for j in range(noOfBlocks):
+            blocks.append(RSBlock(dataCodeword, ecCodeword))
 
     return blocks

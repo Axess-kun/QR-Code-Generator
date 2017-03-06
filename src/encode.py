@@ -52,7 +52,7 @@ def enc(string : str):
     blocks = blockinfo(1, ErrorCorrection.M) # Try @ Version 1 & Error Correction Level = Q
     maxbit = 0
     for i in range(len(blocks)):
-        maxbit += blocks[i].noOfBlocks * blocks[i].dataCodeword * 8
+        maxbit += blocks[i].noDataCodeword * 8
     
     print('maxbit: {0}'.format(maxbit))
 
@@ -98,7 +98,7 @@ def enc(string : str):
     # Error Correction Coding
     #------------------------------
     msg = Polynomial(buff[:])
-    ecCodeword = blocks[0].ecCodeword
+    ecCodeword = blocks[0].noEcCodeword
     gen = Polynomial.getGenerator(ecCodeword)
     newmsg = Polynomial(msg, ecCodeword)
     errCode = (newmsg % gen)[:]
@@ -133,63 +133,69 @@ def enc(string : str):
         large[3].put(set4[i],8)
     
     # Debug Show
-    for i in range(4):
-        print(large[i])
+    #for i in range(4):
+    #    print(large[i])
 
-    rs5q = blockinfo(5, ErrorCorrection.Q)
-    errCodes = []
-    for i in range(4):
-        msg = Polynomial(large[i][:])
-        ecCodeword = rs5q[0].ecCodeword
-        gen = Polynomial.getGenerator(ecCodeword)
-        newmsg = Polynomial(msg, ecCodeword)
-        errCode = (newmsg % gen)[:]
-        # Debug Show
-        #print(errCode)
-        errCodes.append(errCode)
+    #----------
+    # EC Coding for each block & Create final sequence
+    #----------
+    rsInfo = blockinfo(5, ErrorCorrection.Q)
+
+    # Prepare for 2D Table
+    maxDataCount = 0
+    maxEcCount = 0
+    dataTable = [0] * len(rsInfo)
+    ecTable = [0] * len(rsInfo)
+    for block in range(len(rsInfo)):
+        noDataCodeword = rsInfo[block].noDataCodeword
+        noEcCodeword = rsInfo[block].noEcCodeword
+
+        # Find max column of table
+        maxDataCount = max(maxDataCount, noDataCodeword)
+        maxEcCount = max(maxEcCount, noEcCodeword)
+
+        # Copy 'Data' to table
+        dataTable[block] = large[block][:]
+        
+        # EC Coding
+        msg = Polynomial(dataTable[block][:])
+        gen = Polynomial.getGenerator(noEcCodeword)
+        newmsg = Polynomial(msg, noEcCodeword)
+        ecCodeword = newmsg % gen
+
+        # Copy 'EC Codeword' to table
+        ecTable[block] = ecCodeword[:]
 
     # Debug Show
-    for i in range(4):
-        print(errCodes[i])
+    #for i in range(4):
+    #    print(dataTable[i])
+    #for i in range(4):
+    #    print(ecTable[i])
 
     #------------------------------
     # Interleave the Data Codewords & Error Correction Codewords
     #------------------------------
-    #interleave = []
-    ## Create new 2-D array to store data codewords table
-    #dataTable = [0] * 4
-    #errTable = [0] * 4
+    interleaved = []
+    for column in range(maxDataCount):
+        for block in range(len(rsInfo)):
+            # If not null
+            if column < len(dataTable[block]):
+                interleaved.append(dataTable[block][column])
 
-    #maxDataCodeword = 0
-    #maxErrorCodeword = 0
-    #for i in range(len(large)):
-    #    maxDataCodeword = max(maxDataCodeword, len(large[i]))
-    #    maxErrorCodeword = max(maxErrorCodeword, len(errCodes[i]))
-    #    dataTable[i] = [0] * len(large[i])
-    #    errTable[i] = [0] * len(errCodes[i])
+    # Debug
+    #print(interleaved)
 
-    
-    ## Store in table
-    #for i in range(len(large)):
-    #    for j in range(len(large[i])):
-    #        dataTable[i][j] = large[i][j]
+    for column in range(maxEcCount):
+        for block in range(len(rsInfo)):
+            # If not null
+            if column < len(ecTable[block]):
+                interleaved.append(ecTable[block][column])
 
-    #for i in range(len(errCodes)):
-    #    for j in range(len(errCodes[i])):
-    #        errTable[i][j] = errCodes[i][j]
+    # Debug
+    print(interleaved)
 
-    #newsort = []
-    #for i in range(maxDataCodeword):
-    #    for j in range(len(dataTable)):
-    #        if i < len(dataTable[j]):
-    #            newsort.append(dataTable[j][i])
 
-    #for i in range(maxErrorCodeword):
-    #    for j in range(len(errTable)):
-    #        if i < len(errTable[j]):
-    #            newsort.append(errTable[j][i])
 
-    #print(newsort)
 
     try:
         input("Press enter to continue")
