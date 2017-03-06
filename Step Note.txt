@@ -11,3 +11,8 @@ Step 02
 
 Step 03
 - Calculate maximum capacity and fill data
+
+Step 04
+- Log Antilog table
+- GF(256) Polynomial
+--- Multiplication
