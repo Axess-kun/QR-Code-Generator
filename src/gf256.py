@@ -59,13 +59,25 @@ class Polynomial:
         for i in range(len(coefficients) - offset):
             self.coefficients[i] = coefficients[i + offset]
 
+    # polynomial[n]
+    def __getitem__(self, n):
+        return self.coefficients[n]
+
+    # for-loop iterator
+    def __iter__(self):
+        return iter(self.coefficients)
+
+    # len(polynomial)
+    def __len__(self):
+        return len(self.coefficients)
+
     def __mul__(self, other):
         # Create blank list
-        coef = [0] * (len(self.coefficients) + len(other.coefficients) - 1)
+        coef = [0] * (len(self) + len(other) - 1)
 
         # Index & Item Loop
-        for i, item in enumerate(self.coefficients):
-            for j, otherItem in enumerate(other.coefficients):
+        for i, item in enumerate(self):
+            for j, otherItem in enumerate(other):
                 # Addition in GF(256) is performed by XOR
                 coef[i + j] ^= exp2int(int2exp(item) + int2exp(otherItem))
 
@@ -82,24 +94,26 @@ class Polynomial:
 #print('---------')
 
     def __mod__(self, other):
-        diff = len(self.coefficients) - len(other.coefficients)
+        diff = len(self) - len(other)
         # Find remainder
         # If len(dividend) < len(divisor), then return dividend itself because can't divide it
         # ... used as recursive break
         if diff < 0:
             return self
 
-        firstTermExpDiff = int2exp(self.coefficients[0]) - int2exp(other.coefficients[0])
+        firstTermExpDiff = int2exp(self[0]) - int2exp(other[0])
 
         # Create blank list * Copy
-        coef = self.coefficients[:]
+        coef = self[:]
         
-        for i, (item, otherItem) in enumerate(zip(self.coefficients, other.coefficients)):
+        for i, (item, otherItem) in enumerate(zip(self, other)):
             coef[i] = item ^ exp2int(int2exp(otherItem) + firstTermExpDiff)
 
         # Recursive until can't divide
         return Polynomial(coef) % other
 
+    # Parameters:
+    #   n: Error Correction Codewords
     def getGenerator(n:int):
         # Create a0 = 1 as initial polynomial
         poly = Polynomial([1])
@@ -107,18 +121,22 @@ class Polynomial:
             poly = poly * Polynomial([1, exp2int(i)])
         return poly
 
-        
+    # Debug
+    def __str__(self):
+        return str(self.coefficients)
 
-a = Polynomial([1,7,14,8])
-b = Polynomial([1,3,2])
-c = a%b
-print(c.coefficients) # Should be 0
-print('---------')
-d = Polynomial([32, 91, 11, 120, 209, 114, 220, 77, 67, 64, 236, 17, 236, 17, 236, 17])
-e = Polynomial.getGenerator(10) # Shoud be 1, 216, 194, 159, 111, 199, 94, 95, 113, 157, 193
-print(e.coefficients)
-msg = Polynomial(d.coefficients, len(e.coefficients) - 1)
-print(msg.coefficients)
-f = msg%e
-print(f.coefficients) # Should be 196, 35, 39, 119, 235, 215, 231, 226, 93, 23
-print('---------')
+        
+# Debug
+#a = Polynomial([1,7,14,8])
+#b = Polynomial([1,3,2])
+#c = a%b
+#print(c) # Should be 0
+#print('---------')
+#d = Polynomial([32, 91, 11, 120, 209, 114, 220, 77, 67, 64, 236, 17, 236, 17, 236, 17])
+#e = Polynomial.getGenerator(10) # Shoud be 1, 216, 194, 159, 111, 199, 94, 95, 113, 157, 193
+#print(e)
+#msg = Polynomial(d.coefficients, len(e) - 1)
+#print(msg)
+#f = msg%e
+#print(f) # Should be 196, 35, 39, 119, 235, 215, 231, 226, 93, 23
+#print('---------')
