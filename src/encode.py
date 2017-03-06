@@ -3,6 +3,74 @@ from src.enums import *
 from src.blocks import *
 from src.gf256 import Polynomial
 
+#----------
+# EC Coding for each block & Create final sequence
+#----------
+def structFinalMsg(buffer : BitBuffer, blockInfos : RSBlock):
+    # Prepare for 2D Table
+    maxDataCount = 0
+    maxEcCount = 0
+    dataTable = [0] * len(blockInfos)
+    ecTable = [0] * len(blockInfos)
+
+    # Calculate EC codewords, then fill data & ec table
+    for block in range(len(blockInfos)):
+        noDataCodeword = blockInfos[block].noDataCodeword
+        noEcCodeword = blockInfos[block].noEcCodeword
+
+        # Find max column of table
+        maxDataCount = max(maxDataCount, noDataCodeword)
+        maxEcCount = max(maxEcCount, noEcCodeword)
+
+        # Copy 'Data' to table
+        dataTable[block] = buffer[block][:]
+        
+        # EC Coding
+        msg = Polynomial(dataTable[block][:])
+        gen = Polynomial.getGenerator(noEcCodeword)
+        newmsg = Polynomial(msg, noEcCodeword)
+        ecCodeword = newmsg % gen
+
+        # Copy 'EC Codeword' to table
+        ecTable[block] = ecCodeword[:]
+
+    # Debug Show
+    #for i in range(4):
+    #    print(dataTable[i])
+    #for i in range(4):
+    #    print(ecTable[i])
+
+    #------------------------------
+    # Interleave the Data Codewords & Error Correction Codewords
+    #------------------------------
+    interleaved = []
+    for column in range(maxDataCount):
+        for block in range(len(blockInfos)):
+            # If not null
+            if column < len(dataTable[block]):
+                interleaved.append(dataTable[block][column])
+
+    # Debug
+    #print(interleaved)
+
+    for column in range(maxEcCount):
+        for block in range(len(blockInfos)):
+            # If not null
+            if column < len(ecTable[block]):
+                interleaved.append(ecTable[block][column])
+
+    # Debug
+    print(interleaved)
+
+
+
+
+
+
+
+
+
+
 def enc(string : str):
     buff = BitBuffer()
 
@@ -97,21 +165,23 @@ def enc(string : str):
     #------------------------------
     # Error Correction Coding
     #------------------------------
-    msg = Polynomial(buff[:])
-    ecCodeword = blocks[0].noEcCodeword
-    gen = Polynomial.getGenerator(ecCodeword)
-    newmsg = Polynomial(msg, ecCodeword)
-    errCode = (newmsg % gen)[:]
+    #msg = Polynomial(buff[:])
+    #ecCodeword = blocks[0].noEcCodeword
+    #gen = Polynomial.getGenerator(ecCodeword)
+    #newmsg = Polynomial(msg, ecCodeword)
+    #errCode = (newmsg % gen)[:]
 
-    del msg, gen, newmsg, ecCodeword
+    #del msg, gen, newmsg, ecCodeword
 
     #------------------------------
     # Structure Final Message (One block of data codewords)
     #------------------------------
-    for i in range(len(errCode)):
-        buff.put(errCode[i], 8)
+    #for i in range(len(errCode)):
+    #    buff.put(errCode[i], 8)
 
-    print(buff)
+    #print(buff)
+
+    structFinalMsg([buff], blocks)
     print('------------------------------')
 
 
@@ -136,65 +206,9 @@ def enc(string : str):
     #for i in range(4):
     #    print(large[i])
 
-    #----------
-    # EC Coding for each block & Create final sequence
-    #----------
+    
     rsInfo = blockinfo(5, ErrorCorrection.Q)
-
-    # Prepare for 2D Table
-    maxDataCount = 0
-    maxEcCount = 0
-    dataTable = [0] * len(rsInfo)
-    ecTable = [0] * len(rsInfo)
-    for block in range(len(rsInfo)):
-        noDataCodeword = rsInfo[block].noDataCodeword
-        noEcCodeword = rsInfo[block].noEcCodeword
-
-        # Find max column of table
-        maxDataCount = max(maxDataCount, noDataCodeword)
-        maxEcCount = max(maxEcCount, noEcCodeword)
-
-        # Copy 'Data' to table
-        dataTable[block] = large[block][:]
-        
-        # EC Coding
-        msg = Polynomial(dataTable[block][:])
-        gen = Polynomial.getGenerator(noEcCodeword)
-        newmsg = Polynomial(msg, noEcCodeword)
-        ecCodeword = newmsg % gen
-
-        # Copy 'EC Codeword' to table
-        ecTable[block] = ecCodeword[:]
-
-    # Debug Show
-    #for i in range(4):
-    #    print(dataTable[i])
-    #for i in range(4):
-    #    print(ecTable[i])
-
-    #------------------------------
-    # Interleave the Data Codewords & Error Correction Codewords
-    #------------------------------
-    interleaved = []
-    for column in range(maxDataCount):
-        for block in range(len(rsInfo)):
-            # If not null
-            if column < len(dataTable[block]):
-                interleaved.append(dataTable[block][column])
-
-    # Debug
-    #print(interleaved)
-
-    for column in range(maxEcCount):
-        for block in range(len(rsInfo)):
-            # If not null
-            if column < len(ecTable[block]):
-                interleaved.append(ecTable[block][column])
-
-    # Debug
-    print(interleaved)
-
-
+    structFinalMsg(large, rsInfo)
 
 
     try:
