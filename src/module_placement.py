@@ -62,12 +62,12 @@ class Module:
         self.size = (((version-1)*4)+21)
 
         # Grey BG for debugging
-        self.bg = self.int2rgb(0x888888)
+        bg = self.int2rgb(0x888888)
 
         # 2D Array
-        self.modules = [self.bg] * self.size
+        self.modules = [None] * self.size
         for row in range(self.size):
-            self.modules[row] = [self.bg] * self.size
+            self.modules[row] = [None] * self.size
 
         #------------------------------
         # Paint Patterns
@@ -78,14 +78,17 @@ class Module:
         self.paintFinderSeparatorPattern(0, self.size - 7)
         # Alignment Patterns
         self.paintAlignmentPattern()
+        # Timing Patterns
+        self.paintTimingPattern()
 
         # Blank Canvas
-        canvas = Image.new("RGB", (self.size, self.size), self.bg)
+        canvas = Image.new("RGB", (self.size, self.size), bg)
         
         # Put data into each module
         for i in range(len(self.modules)):
             for j in range(len(self.modules[i])):
-                canvas.putpixel((i,j), self.modules[i][j])
+                if self.modules[i][j] is not None:
+                    canvas.putpixel((j,i), self.modules[i][j])
 
         # Save
         #canvas.save("QR.jpg", "JPEG", quality=100, optimize=True)
@@ -136,7 +139,7 @@ class Module:
                 col = pos[j]
 
                 # Check if finder pattern placed -> Nothing to do with this position
-                if any([(a != b) for a, b in zip(self.modules[row][col], self.bg)]):
+                if self.modules[row][col] is not None:
                     continue
 
                 # Else, loop for drawing
@@ -154,7 +157,28 @@ class Module:
                             # White
                             self.modules[row + r][col + c] = self.int2rgb(0xFFFFFF)
 
-    
+    #------------------------------
+    # Timing Patterns
+    #------------------------------
+    def paintTimingPattern(self):
+        # Vertical loop from 8 ~ size-9
+        for row in range(8, self.size - 8):
+            if self.modules[row][6] is not None:
+                continue
+            if (row % 2) == 0:
+                self.modules[row][6] = self.int2rgb(0)
+            else:
+                self.modules[row][6] = self.int2rgb(0xFFFFFF)
+
+        # Horizontal loop
+        for col in range(8, self.size - 8):
+            if self.modules[6][col] is not None:
+                continue
+            if (col % 2) == 0:
+                self.modules[6][col] = self.int2rgb(0)
+            else:
+                self.modules[6][col] = self.int2rgb(0xFFFFFF)
+
 Module(1)
 Module(18)
 Module(40)

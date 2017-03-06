@@ -32,3 +32,4 @@ Step 06
 --- Add Finder Patterns
 --- Add Separators
 --- Add Alignment Patterns
+--- Add Timing Patterns
