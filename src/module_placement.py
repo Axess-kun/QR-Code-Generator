@@ -240,7 +240,7 @@ class Module:
     # Datas
     #------------------------------
     def paintDatas(self, dataBuffer):
-        totalDataBytes = len(dataBuffer)
+        totalDataBytes = len(dataBuffer.buffer)
         bitIndex = 7
         byteIndex = 0
         row = self.size - 1
