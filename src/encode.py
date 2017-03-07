@@ -190,6 +190,9 @@ def enc(string : str):
     print('------------------------------')
 
 
+    Module(smallmsg, version)
+
+
     print('-------- DEBUG 5-Q ------')
     #------------------------------
     # Structure Final Message (Large data codewords)
@@ -228,9 +231,9 @@ def enc(string : str):
     if RemainderBits[version-1] > 0:
         final.put(0, RemainderBits[version-1])
     print('----- final -----')
-    print(final)
+    #print(final)
 
-
+    Module(final, 5)
 
 
     try:

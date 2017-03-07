@@ -35,3 +35,4 @@ Step 06
 --- Add Timing Patterns
 --- Add Dark Module
 --- Reserve Format & Version Information Area
+--- Data Placement

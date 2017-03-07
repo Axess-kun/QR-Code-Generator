@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>618a4bc4-09cf-409b-bb8d-115c2f14b128</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>src\module_placement.py</StartupFile>
+    <StartupFile>main.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>

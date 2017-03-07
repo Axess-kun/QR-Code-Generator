@@ -1,4 +1,5 @@
 from PIL import Image, ImageDraw
+from src.BitBuffer import BitBuffer
 
 AlignmentPosition = [
     # Each line represent each version from 1 to 40 respectively
@@ -54,7 +55,7 @@ class Module:
     def int2rgba(self, value):
         return ((value >> 24) & 0xFF, (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
 
-    def __init__(self, version):
+    def __init__(self, dataBuffer, version):
         self.version = version
         #------------------------------
         # Construct QR
@@ -88,6 +89,14 @@ class Module:
         #------------------------------
         self.reserveFormatVersionInfo()
 
+        #------------------------------
+        # Paint Datas
+        #------------------------------
+        self.paintDatas(dataBuffer)
+
+        #------------------------------
+        # Draw
+        #------------------------------
         # Blank Canvas
         canvas = Image.new("RGB", (self.size, self.size), bg)
         
@@ -227,8 +236,55 @@ class Module:
                 for col in range(6):
                     self.modules[self.size-11+row][col] = reserve
 
-Module(1)
-Module(6)
-Module(7)
-Module(18)
-Module(40)
+    #------------------------------
+    # Datas
+    #------------------------------
+    def paintDatas(self, dataBuffer):
+        totalDataBytes = len(dataBuffer)
+        bitIndex = 7
+        byteIndex = 0
+        row = self.size - 1
+        rowInc = -1 # Row increasement (up-down direction)
+
+        # Loop from right to left
+        for baseColumn in range(self.size-1,0,-2):
+            # Skip timing line
+            if baseColumn <= 6: # Since using loop, use '<=' to change value for next loop & next next loop ...
+                baseColumn -= 1
+
+            # Range to draw
+            colRange = (baseColumn, baseColumn-1)
+
+            # Draw in these 2 columns until hit top-bottom or break
+            while True:
+                for col in colRange:
+                    # Blank slot
+                    if self.modules[row][col] is None:
+                        # Still readable
+                        if byteIndex < totalDataBytes:
+                            # Get bit by byteIndex & bitIndex
+                            # bitIndex is from right to left as 0~7 respectively)
+                            # 1
+                            if (dataBuffer[byteIndex] >> bitIndex) & 1:
+                                self.modules[row][col] = self.int2rgb(0)
+                            # 0
+                            else:
+                                self.modules[row][col] = self.int2rgb(0xFFFFFF)
+                            bitIndex -= 1
+
+                            # Next byte
+                            if bitIndex == -1:
+                                bitIndex = 7
+                                byteIndex += 1
+                        # Unreadable // If capacity is filled, nothing like this can be happened
+                        else:
+                            break
+
+                # Next row
+                row += rowInc
+
+                # Hit top or bottom
+                if row < 0 or row >= self.size:
+                    row -= rowInc # Go back 1 step
+                    rowInc *= -1 # Swap direction
+                    break
