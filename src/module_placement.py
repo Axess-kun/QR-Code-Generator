@@ -80,6 +80,13 @@ class Module:
         self.paintAlignmentPattern()
         # Timing Patterns
         self.paintTimingPattern()
+        # Dark Module
+        self.modules[(version*4)+9][8] = self.int2rgb(0)
+
+        #------------------------------
+        # Reserve the Format & Version Information Area
+        #------------------------------
+        self.reserveFormatVersionInfo()
 
         # Blank Canvas
         canvas = Image.new("RGB", (self.size, self.size), bg)
@@ -179,6 +186,49 @@ class Module:
             else:
                 self.modules[6][col] = self.int2rgb(0xFFFFFF)
 
+    #------------------------------
+    # Reserve the Format Information Area
+    #------------------------------
+    def reserveFormatVersionInfo(self):
+        reserve = self.int2rgb(0xFF)
+
+        #----------
+        # Format (All Version) Infos
+        #----------
+        # Vertical
+        for row in range(15):
+            if row < 6:
+                self.modules[row][8] = reserve
+            elif row < 8: # Skip timing
+                self.modules[row+1][8] = reserve
+            else: # Bottom Line
+                self.modules[self.size-15+row][8] = reserve
+
+        # Horizontal
+        for col in range(15):
+            if col < 6:
+                self.modules[8][col] = reserve
+            elif col < 7: # Skip timing
+                self.modules[8][col+1] = reserve
+            else: # Right Line
+                self.modules[8][self.size-15+col] = reserve
+
+        #----------
+        # Version Infos (Version 7++)
+        #----------
+        if self.version >= 7:
+            # Top-Right (3x6)
+            for row in range(6):
+                for col in range(3):
+                    self.modules[row][self.size-11+col] = reserve
+
+            # Bottom-Left (6x3)
+            for row in range(3):
+                for col in range(6):
+                    self.modules[self.size-11+row][col] = reserve
+
 Module(1)
+Module(6)
+Module(7)
 Module(18)
 Module(40)

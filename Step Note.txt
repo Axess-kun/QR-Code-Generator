@@ -33,3 +33,5 @@ Step 06
 --- Add Separators
 --- Add Alignment Patterns
 --- Add Timing Patterns
+--- Add Dark Module
+--- Reserve Format & Version Information Area
