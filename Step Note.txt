@@ -36,3 +36,4 @@ Step 06
 --- Add Dark Module
 --- Reserve Format & Version Information Area
 --- Data Placement
+- Change structFinalMsg() parameter from list of BitBuffers to one-BitBuffer

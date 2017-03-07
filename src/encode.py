@@ -14,6 +14,9 @@ def structFinalMsg(buffer : BitBuffer, blockInfos : RSBlock):
     dataTable = [0] * len(blockInfos)
     ecTable = [0] * len(blockInfos)
 
+    # Count for index in buffer
+    totalDataCount = 0
+
     # Calculate EC codewords, then fill data & ec table
     for block in range(len(blockInfos)):
         noDataCodeword = blockInfos[block].noDataCodeword
@@ -24,7 +27,8 @@ def structFinalMsg(buffer : BitBuffer, blockInfos : RSBlock):
         maxEcCount = max(maxEcCount, noEcCodeword)
 
         # Copy 'Data' to table
-        dataTable[block] = buffer[block][:]
+        dataTable[block] = buffer.buffer[totalDataCount : totalDataCount + noDataCodeword]
+        totalDataCount += noDataCodeword
         
         # EC Coding
         msg = Polynomial(dataTable[block][:])
@@ -185,12 +189,12 @@ def enc(string : str):
 
     #print(buff)
 
-    smallmsg = structFinalMsg([buff], blocks)
+    smallmsg = structFinalMsg(buff, blocks)
     #print(smallmsg)
     print('------------------------------')
 
 
-    Module(smallmsg, version)
+    #Module(smallmsg, version)
 
 
     print('-------- DEBUG 5-Q ------')
@@ -198,17 +202,11 @@ def enc(string : str):
     # Structure Final Message (Large data codewords)
     #------------------------------
 # Debug
-    large = [BitBuffer(), BitBuffer(), BitBuffer(), BitBuffer()]
-    set1 = [67,85,70,134,87,38,85,194,119,50,6,18,6,103,38]
-    set2 = [246,246,66,7,118,134,242,7,38,86,22,198,199,146,6]
-    for i in range(15):
-        large[0].put(set1[i],8)
-        large[1].put(set2[i],8)
-    set3 = [182,230,247,119,50,7,118,134,87,38,82,6,134,151,50,7]
-    set4 = [70,247,118,86,194,6,151,50,16,236,17,236,17,236,17,236]
-    for i in range(16):
-        large[2].put(set3[i],8)
-        large[3].put(set4[i],8)
+    large = BitBuffer()
+    set = [67,85,70,134,87,38,85,194,119,50,6,18,6,103,38,246,246,66,7,118,134,242,7,38,86,22,198,199,146,6
+            ,182,230,247,119,50,7,118,134,87,38,82,6,134,151,50,7,70,247,118,86,194,6,151,50,16,236,17,236,17,236,17,236]
+    for i in range(62):
+        large.put(set[i],8)
     
     # Debug Show
     #for i in range(4):
@@ -233,7 +231,7 @@ def enc(string : str):
     print('----- final -----')
     #print(final)
 
-    Module(final, 5)
+    #Module(final, 5)
 
 
     try:
