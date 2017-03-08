@@ -78,7 +78,7 @@ def structFinalMsg(buffer : BitBuffer, blockInfos : RSBlock):
 
 def enc(string : str):
     version = 1
-    ecLevel = ErrorCorrection.M
+    ecLevel = ErrorCorrection.Q
 
     buff = BitBuffer()
 
@@ -129,6 +129,8 @@ def enc(string : str):
     maxbit = 0
     for i in range(len(blocks)):
         maxbit += blocks[i].noDataCodeword * 8
+    if len(buff) > maxbit:
+        raise MemoryError("Capacity Overflow")
     
     print('maxbit: {0}'.format(maxbit))
 
@@ -196,7 +198,7 @@ def enc(string : str):
     final = BitBuffer()
     final.copyList(smallmsg)
     #Module(smallmsg, 7, ErrorCorrection.L)
-    Module(final, version, ErrorCorrection.L)
+    Module(final, version, ecLevel)
     del final
 
     print('-------- DEBUG 5-Q ------')

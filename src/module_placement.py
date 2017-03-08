@@ -50,7 +50,7 @@ AlignmentPosition = [
 # Return function to determine mask
 def getMaskPatternFunc(maskNumber : int):
     if maskNumber == 0:
-        return lambda row, col: (row + column) % 2 == 0
+        return lambda row, col: (row + col) % 2 == 0
     if maskNumber == 1:
         return lambda row, col: row % 2 == 0
     if maskNumber == 2:
@@ -71,8 +71,8 @@ def getMaskPatternFunc(maskNumber : int):
 ECDic = {
     ErrorCorrection.L: 1,
     ErrorCorrection.M: 0,
-    ErrorCorrection.Q: 2,
-    ErrorCorrection.H: 3,
+    ErrorCorrection.Q: 3,
+    ErrorCorrection.H: 2,
 }
 
 class Module:
@@ -93,32 +93,47 @@ class Module:
         #------------------------------
         self.size = (((version-1)*4)+21)
 
-        # Grey BG for debugging
-        bg = self.int2rgb(0x888888)
+        #------------------------------
+        # Test for every mask patterns & find the best one
+        #------------------------------
+        bestMask = 0
+        minPenaltyScore = 0
+        for i in range(8):
+            # Create QR
+            self.makeModule(dataBuffer, i)
+            # Calculate penalty score
+            penaltyScore = self.calcPenalty()
 
-        
+            # Debug
+            print("loop={0} | penalty={1}".format(i, penaltyScore))
+
+            # First loop or found better one
+            if i == 0 or penaltyScore < minPenaltyScore:
+                minPenaltyScore = penaltyScore
+                bestMask = i
+
+        # Debug
+        print("bestMask = {0}".format(bestMask))
+        print("minPenaltyScore = {0}".format(minPenaltyScore))
 
         #------------------------------
-        # Test for every mask patterns
+        # Real Making
         #------------------------------
-        #for i in range(8):
-        #    self.makeModule(i)
-        #    self.calcPenalty()
-        self.makeModule(dataBuffer, 4)
-        self.calcPenalty()
-        
+        self.makeModule(dataBuffer, bestMask)
 
         #------------------------------
         # Draw
         #------------------------------
-        # Blank Canvas
-        canvas = Image.new("RGB", (self.size, self.size), bg)
+        # White BG
+        bg = self.int2rgb(0xFFFFFF)
+        # Blank Canvas with White Border
+        canvas = Image.new("RGB", (self.size+2, self.size+2), bg)
         
         # Put data into each module
         for i in range(len(self.modules)):
             for j in range(len(self.modules[i])):
                 if self.modules[i][j] is not None:
-                    canvas.putpixel((j,i), self.int2rgb(0) if self.modules[i][j] == True else self.int2rgb(0xFFFFFF))
+                    canvas.putpixel((j+1,i+1), self.int2rgb(0) if self.modules[i][j] == True else self.int2rgb(0xFFFFFF))
 
         # Save
         #canvas.save("QR.jpg", "JPEG", quality=100, optimize=True)
@@ -162,7 +177,7 @@ class Module:
         #------------------------------
         # Paint Datas
         #------------------------------
-        self.paintDatas(dataBuffer, maskNumber) #* NOT applied mask yet!! just for debugging mask penalty score
+        self.paintDatas(dataBuffer, maskNumber)
 
     #------------------------------
     # Finder Patterns & Separators
@@ -352,7 +367,6 @@ class Module:
 
     #------------------------------
     # Datas
-    # * NOT applied mask yet!!
     #------------------------------
     def paintDatas(self, dataBuffer, maskNumber):
         totalDataBytes = len(dataBuffer.buffer)
@@ -360,6 +374,9 @@ class Module:
         byteIndex = 0
         row = self.size - 1
         rowInc = -1 # Row increasement (up-down direction)
+
+        # Mask Function
+        maskFunc = getMaskPatternFunc(maskNumber)
 
         # Loop from right to left
         for baseColumn in range(self.size-1,0,-2):
@@ -375,13 +392,24 @@ class Module:
                 for col in colRange:
                     # Blank slot
                     if self.modules[row][col] is None:
+                        # Data to be written
+                        # If capacity is not filled, get White color
+                        write = False
+
                         # Still readable
                         if byteIndex < totalDataBytes:
                             # Get bit by byteIndex & bitIndex
                             # bitIndex is from right to left as 0~7 respectively
-                            self.modules[row][col] = ((dataBuffer[byteIndex] >> bitIndex) & 1) == 1
+                            write = ((dataBuffer[byteIndex] >> bitIndex) & 1) == 1
                             # Used 1 bit
                             bitIndex -= 1
+
+                            if maskFunc(row, col):
+                                # Toggle
+                                write = not write
+
+                            # Write
+                            self.modules[row][col] = write
 
                             # Next byte
                             if bitIndex == -1:
@@ -487,6 +515,9 @@ class Module:
                         sameCount = 1
         # Debug
         print("row count: {0}".format(score-colScore))
+
+        # Debug
+        print("penalty #1 = {0}".format(score))
 
         return score
 

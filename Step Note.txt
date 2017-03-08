@@ -37,3 +37,11 @@ Step 06
 --- Reserve Format & Version Information Area
 --- Data Placement
 - Change structFinalMsg() parameter from list of BitBuffers to one-BitBuffer
+
+Step 07
+- Remove reserve area & insert masked Format/Version information
+- Calculate penalty score for 4 conditions
+- Mask data
+- Find best mask & create the best one
+- Change RS_BLOCK_TABLE for easy to copy and paste from site
+- Create QR Code
