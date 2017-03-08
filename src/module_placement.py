@@ -155,7 +155,7 @@ class Module:
         self.paintFormatInfo(maskNumber)
         # Version Infos (Version 7++)
         if self.version >= 7:
-            self.paintVersionInfo(maskNumber)
+            self.paintVersionInfo()
 
         #------------------------------
         # Paint Datas
@@ -278,6 +278,24 @@ class Module:
 
         return data
 
+    #------------------------------
+    # Version String Bits
+    #------------------------------
+    def get18bitsVersionString(self):
+        # Create 18 bits data, first 6 bits is version in binary
+        data = self.version << 12
+        
+        # While data has 13 bits or more (VersionStringGP has 13 bits)
+        while self.countBits(data) - self.countBits(VersionStringGP) >= 0:
+            # Pad generator polynomial to has a same bit size as data
+            paddedGP = VersionStringGP << (self.countBits(data) - self.countBits(VersionStringGP))
+            # XOR format string
+            data ^= paddedGP
+
+        # Now we have 12 bits data, put it behind first 6 bits
+        data |= (self.version << 12)
+
+        return data
 
     #------------------------------
     # Format Information Area
@@ -287,9 +305,6 @@ class Module:
         first5bits = (ECDic[self.errorCorrection] << 3) | maskNumber
         dataToWrite = self.get15bitsFormatString(first5bits)
 
-        #----------
-        # Format (All Version) Infos
-        #----------
         # Vertical
         for row in range(15):
             # dataToWrite: Bit from left to right are most significant bit and least significant bit, respectively
@@ -317,16 +332,21 @@ class Module:
     #------------------------------
     # Version Information Area
     #------------------------------
-    def paintVersionInfo(self, maskNumber):
+    def paintVersionInfo(self):
+        # Version String
+        dataToWrite = self.get18bitsVersionString()
+
         # Top-Right (3x6)
         for row in range(6):
             for col in range(3):
-                self.modules[row][self.size-11+col] = self.int2rgb(0xFF)
+                write = (dataToWrite >> ((row * 3) + col)) & 1
+                self.modules[row][self.size-11+col] = self.int2rgb(0) if write else self.int2rgb(0xFFFFFF)
 
         # Bottom-Left (6x3)
-        for row in range(3):
-            for col in range(6):
-                self.modules[self.size-11+row][col] = self.int2rgb(0xFF)
+        for col in range(6):
+            for row in range(3):
+                write = (dataToWrite >> ((col * 3) + row)) & 1
+                self.modules[self.size-11+row][col] = self.int2rgb(0) if write else self.int2rgb(0xFFFFFF)
 
     #------------------------------
     # Datas

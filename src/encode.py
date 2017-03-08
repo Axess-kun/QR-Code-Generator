@@ -193,8 +193,8 @@ def enc(string : str):
     #print(smallmsg)
     print('------------------------------')
 
-
-    Module(smallmsg, version, ErrorCorrection.L)
+    Module(smallmsg, 7, ErrorCorrection.L)
+    #Module(smallmsg, version, ErrorCorrection.L)
 
 
     print('-------- DEBUG 5-Q ------')
