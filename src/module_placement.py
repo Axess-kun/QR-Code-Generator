@@ -103,7 +103,9 @@ class Module:
         #------------------------------
         #for i in range(8):
         #    self.makeModule(i)
-        self.makeModule(4)
+        #    self.calcPenalty()
+        self.makeModule(dataBuffer, 4)
+        self.calcPenalty()
         
 
         #------------------------------
@@ -116,7 +118,7 @@ class Module:
         for i in range(len(self.modules)):
             for j in range(len(self.modules[i])):
                 if self.modules[i][j] is not None:
-                    canvas.putpixel((j,i), self.modules[i][j])
+                    canvas.putpixel((j,i), self.int2rgb(0) if self.modules[i][j] == True else self.int2rgb(0xFFFFFF))
 
         # Save
         #canvas.save("QR.jpg", "JPEG", quality=100, optimize=True)
@@ -128,7 +130,7 @@ class Module:
     #------------------------------
     # Parameters:
     #   maskNumber: Mask pattern number (0~7)
-    def makeModule(self, maskNumber = 0):
+    def makeModule(self, dataBuffer, maskNumber = 0):
         # 2D Array / Create or Overwritten it as None
         self.modules = [None] * self.size
         for row in range(self.size):
@@ -146,7 +148,7 @@ class Module:
         # Timing Patterns
         self.paintTimingPattern()
         # Dark Module
-        self.modules[(self.version*4)+9][8] = self.int2rgb(0)
+        self.modules[(self.version*4)+9][8] = True
 
         #------------------------------
         # Format & Version Information Area
@@ -160,7 +162,7 @@ class Module:
         #------------------------------
         # Paint Datas
         #------------------------------
-        #self.paintDatas(dataBuffer, maskNumber)
+        self.paintDatas(dataBuffer, maskNumber) #* NOT applied mask yet!! just for debugging mask penalty score
 
     #------------------------------
     # Finder Patterns & Separators
@@ -186,10 +188,10 @@ class Module:
                     (2 <= r and r <= 4 and 2 <= c and c <= 4) # Middle 3x3
                     ):
                     # Black
-                    self.modules[row + r][col + c] = self.int2rgb(0)
+                    self.modules[row + r][col + c] = True
                 else:
                     # White
-                    self.modules[row + r][col + c] = self.int2rgb(0xFFFFFF)
+                    self.modules[row + r][col + c] = False
 
     #------------------------------
     # Alignment Patterns
@@ -219,10 +221,10 @@ class Module:
                             (r == 0 and c == 0) # Middle
                             ):
                             # Black
-                            self.modules[row + r][col + c] = self.int2rgb(0)
+                            self.modules[row + r][col + c] = True
                         else:
                             # White
-                            self.modules[row + r][col + c] = self.int2rgb(0xFFFFFF)
+                            self.modules[row + r][col + c] = False
 
     #------------------------------
     # Timing Patterns
@@ -233,18 +235,18 @@ class Module:
             if self.modules[row][6] is not None:
                 continue
             if (row % 2) == 0:
-                self.modules[row][6] = self.int2rgb(0)
+                self.modules[row][6] = True
             else:
-                self.modules[row][6] = self.int2rgb(0xFFFFFF)
+                self.modules[row][6] = False
 
         # Horizontal loop
         for col in range(8, self.size - 8):
             if self.modules[6][col] is not None:
                 continue
             if (col % 2) == 0:
-                self.modules[6][col] = self.int2rgb(0)
+                self.modules[6][col] = True
             else:
-                self.modules[6][col] = self.int2rgb(0xFFFFFF)
+                self.modules[6][col] = False
 
     #------------------------------
     # Count bits from number
@@ -308,24 +310,24 @@ class Module:
         # Vertical
         for row in range(15):
             # dataToWrite: Bit from left to right are most significant bit and least significant bit, respectively
-            write = (dataToWrite >> row) & 1
+            write = ((dataToWrite >> row) & 1) == 1
 
             if row < 6:
-                self.modules[row][8] = self.int2rgb(0) if write else self.int2rgb(0xFFFFFF)
+                self.modules[row][8] = write
             elif row < 8: # Skip timing
-                self.modules[row+1][8] = self.int2rgb(0) if write else self.int2rgb(0xFFFFFF)
+                self.modules[row+1][8] = write
             else: # Bottom Line
-                self.modules[self.size-15+row][8] = self.int2rgb(0) if write else self.int2rgb(0xFFFFFF)
+                self.modules[self.size-15+row][8] = write
 
         # Horizontal
         for col in range(15):
-            write = (dataToWrite >> (14-col)) & 1
+            write = ((dataToWrite >> (14-col)) & 1) == 1
             if col < 6:
-                self.modules[8][col] = self.int2rgb(0) if write else self.int2rgb(0xFFFFFF)
+                self.modules[8][col] = write
             elif col < 7: # Skip timing
-                self.modules[8][col+1] = self.int2rgb(0) if write else self.int2rgb(0xFFFFFF)
+                self.modules[8][col+1] = write
             else: # Right Line
-                self.modules[8][self.size-15+col] = self.int2rgb(0) if write else self.int2rgb(0xFFFFFF)
+                self.modules[8][self.size-15+col] = write
 
         
 
@@ -339,17 +341,18 @@ class Module:
         # Top-Right (3x6)
         for row in range(6):
             for col in range(3):
-                write = (dataToWrite >> ((row * 3) + col)) & 1
-                self.modules[row][self.size-11+col] = self.int2rgb(0) if write else self.int2rgb(0xFFFFFF)
+                write = ((dataToWrite >> ((row * 3) + col)) & 1) == 1
+                self.modules[row][self.size-11+col] = write
 
         # Bottom-Left (6x3)
         for col in range(6):
             for row in range(3):
-                write = (dataToWrite >> ((col * 3) + row)) & 1
-                self.modules[self.size-11+row][col] = self.int2rgb(0) if write else self.int2rgb(0xFFFFFF)
+                write = ((dataToWrite >> ((col * 3) + row)) & 1) == 1
+                self.modules[self.size-11+row][col] = write
 
     #------------------------------
     # Datas
+    # * NOT applied mask yet!!
     #------------------------------
     def paintDatas(self, dataBuffer, maskNumber):
         totalDataBytes = len(dataBuffer.buffer)
@@ -375,13 +378,9 @@ class Module:
                         # Still readable
                         if byteIndex < totalDataBytes:
                             # Get bit by byteIndex & bitIndex
-                            # bitIndex is from right to left as 0~7 respectively)
-                            # 1
-                            if (dataBuffer[byteIndex] >> bitIndex) & 1:
-                                self.modules[row][col] = self.int2rgb(0)
-                            # 0
-                            else:
-                                self.modules[row][col] = self.int2rgb(0xFFFFFF)
+                            # bitIndex is from right to left as 0~7 respectively
+                            self.modules[row][col] = ((dataBuffer[byteIndex] >> bitIndex) & 1) == 1
+                            # Used 1 bit
                             bitIndex -= 1
 
                             # Next byte
@@ -400,3 +399,93 @@ class Module:
                     row -= rowInc # Go back 1 step
                     rowInc *= -1 # Swap direction
                     break
+
+    #------------------------------
+    # Calculate Penalty Scores of Masking
+    #------------------------------
+    def calcPenalty(self):
+        score = self.calcPenalty1()
+        #score += self.calcPenalty2()
+        #score += self.calcPenalty3()
+        #score += self.calcPenalty4()
+
+        return score
+
+    # Condition #1
+    def calcPenalty1(self):
+        """
+        Check each row one-by-one.
+        If there are five consecutive modules of the same color, add 3 to the penalty.
+        If there are more modules of the same color after the first five, add 1 for each additional module of the same color.
+        Afterward, check each column one-by-one, checking for the same condition.
+        Add the horizontal and vertical total to obtain penalty score #1.
+        """
+
+        score = 0
+        lastDot = None
+        sameCount = 1
+        # Horizontal
+        for row in range(self.size):
+            for col in range(self.size):
+                # First Column
+                if col == 0:
+                    # Get this dot color / Black or White
+                    lastDot = self.modules[row][col]
+                # Last Column
+                elif col == self.size - 1:
+                    # Same as previous?
+                    if self.modules[row][col-1] == lastDot:
+                        sameCount += 1
+                    # Check
+                    if sameCount >= 5:
+                        score += (sameCount - 5) + 3
+                # Second~
+                else:
+                    # Same as previous?
+                    if self.modules[row][col-1] == lastDot:
+                        sameCount += 1
+                    else:
+                        # Check
+                        if sameCount >= 5:
+                            score += (sameCount - 5) + 3
+                        # Renew lastDot color
+                        lastDot = self.modules[row][col]
+                        # Reset sameCount
+                        sameCount = 1
+
+        # Debug
+        colScore = score
+        print("column count: {0}".format(colScore))
+
+        # Vertical
+        for col in range(self.size):
+            for row in range(self.size):
+                # First Row
+                if row == 0:
+                    # Get this dot color / Black or White
+                    lastDot = self.modules[row][col]
+                # Last Row
+                elif row == self.size - 1:
+                    # Same as previous?
+                    if self.modules[row-1][col] == lastDot:
+                        sameCount += 1
+                    # Check
+                    if sameCount >= 5:
+                        score += (sameCount - 5) + 3
+                # Second~
+                else:
+                    # Same as previous?
+                    if self.modules[row-1][col] == lastDot:
+                        sameCount += 1
+                    else:
+                        # Check
+                        if sameCount >= 5:
+                            score += (sameCount - 5) + 3
+                        # Renew lastDot color
+                        lastDot = self.modules[row][col]
+                        # Reset sameCount
+                        sameCount = 1
+        # Debug
+        print("row count: {0}".format(score-colScore))
+
+        return score

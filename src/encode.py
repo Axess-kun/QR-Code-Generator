@@ -193,9 +193,11 @@ def enc(string : str):
     #print(smallmsg)
     print('------------------------------')
 
-    Module(smallmsg, 7, ErrorCorrection.L)
-    #Module(smallmsg, version, ErrorCorrection.L)
-
+    final = BitBuffer()
+    final.copyList(smallmsg)
+    #Module(smallmsg, 7, ErrorCorrection.L)
+    Module(final, version, ErrorCorrection.L)
+    del final
 
     print('-------- DEBUG 5-Q ------')
     #------------------------------
