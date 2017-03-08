@@ -1,6 +1,6 @@
 from PIL import Image, ImageDraw
 from src.BitBuffer import BitBuffer
-from math import floor
+from math import floor, ceil
 from src.enums import *
 
 AlignmentPosition = [
@@ -405,9 +405,9 @@ class Module:
     #------------------------------
     def calcPenalty(self):
         score = self.calcPenalty1()
-        #score += self.calcPenalty2()
-        #score += self.calcPenalty3()
-        #score += self.calcPenalty4()
+        score += self.calcPenalty2()
+        score += self.calcPenalty3()
+        score += self.calcPenalty4()
 
         return score
 
@@ -487,5 +487,118 @@ class Module:
                         sameCount = 1
         # Debug
         print("row count: {0}".format(score-colScore))
+
+        return score
+
+    # Condition #2
+    def calcPenalty2(self):
+        """
+        Look for areas of the same color that are at least 2x2 modules or larger.
+        The QR code specification says that for a solid-color block of size m × n, the penalty score is 3 × (m - 1) × (n - 1).
+        However, the QR code specification does not specify how to calculate the penalty
+        when there are multiple ways of dividing up the solid-color blocks.
+
+        Therefore, rather than looking for solid-color blocks larger than 2x2,
+        simply add 3 to the penalty score for every 2x2 block of the same color in the QR code,
+        making sure to count overlapping 2x2 blocks.
+        For example, a 3x2 block of the same color should be counted as two 2x2 blocks, one overlapping the other. 
+        """
+
+        score = 0
+        for row in range(self.size-1):
+            for col in range(self.size-1):
+                count = 0
+                if self.modules[row][col]:
+                    count += 1
+                if self.modules[row+1][col]:
+                    count += 1
+                if self.modules[row][col+1]:
+                    count += 1
+                if self.modules[row+1][col+1]:
+                    count += 1
+
+                # 2x2 White or 2x2 Black
+                if count == 0 or count == 4:
+                    score += 3
+
+        # Debug
+        print("penalty #2 = {0}".format(score))
+                    
+        return score
+
+    # Condition #3
+    def calcPenalty3(self):
+        """
+        Looks for patterns of dark-light-dark-dark-dark-light-dark that have four light modules on either side.
+        In other words, it looks for any of the following two patterns:
+        10111010000
+        OR
+        00001011101
+        Each time this pattern is found, add 40 to the penalty score.
+        """
+        # ^
+        # Check only dark-light-dark-dark-dark-light-dark (1011101) is fine
+
+        score = 0
+        # Horizontal
+        for row in range(self.size):
+            for col in range(self.size-6):
+                if (self.modules[row][col] and
+                    not self.modules[row][col+1] and
+                    self.modules[row][col+2] and
+                    self.modules[row][col+3] and
+                    self.modules[row][col+4] and
+                    not self.modules[row][col+5] and
+                    self.modules[row][col+6]):
+                    score += 40
+
+        # Vertical
+        for col in range(self.size):
+            for row in range(self.size-6):
+                if (self.modules[row][col] and
+                    not self.modules[row+1][col] and
+                    self.modules[row+2][col] and
+                    self.modules[row+3][col] and
+                    self.modules[row+4][col] and
+                    not self.modules[row+5][col] and
+                    self.modules[row+6][col]):
+                    score += 40
+
+        # Debug
+        print("penalty #3 = {0}".format(score))
+
+        return score
+
+    # Condition #4
+    def calcPenalty4(self):
+        """
+        Do the following steps:
+        1. Count the total number of modules in the matrix.
+        2. Count how many dark modules there are in the matrix.
+        3. Calculate the percent of modules in the matrix that are dark: (darkmodules / totalmodules) * 100
+        4. Determine the previous and next multiple of five of this percent. For example, for 43 percent,
+           the previous multiple of five is 40, and the next multiple of five is 45.
+        5. Subtract 50 from each of these multiples of five and take the absolute value of the result.
+           For example, |40 - 50| = |-10| = 10 and |45 - 50| = |-5| = 5.
+        6. Divide each of these by five. For example, 10/5 = 2 and 5/5 = 1.
+        7. Finally, take the smallest of the two numbers and multiply it by 10. In this example,
+           the lower number is 1, so the result is 10. This is penalty score #4.
+        """
+
+        # Step 2
+        darkCount = 0
+        for row in range(self.size):
+            for col in range(self.size):
+                if self.modules[row][col]:
+                    darkCount += 1
+
+        # Step 1, 3
+        percent = (darkCount / (self.size * self.size)) * 100.0
+        # Step 4-7
+        # Find smaller number from 2 numbers -> use // to throw away remainder
+        score = (abs(percent - 50) // 5) * 10
+
+        # Debug
+        print("penalty #4 = {0}".format(score))
 
         return score
