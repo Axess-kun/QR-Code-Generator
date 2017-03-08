@@ -1,5 +1,7 @@
 from PIL import Image, ImageDraw
 from src.BitBuffer import BitBuffer
+from math import floor
+from src.enums import *
 
 AlignmentPosition = [
     # Each line represent each version from 1 to 40 respectively
@@ -45,6 +47,34 @@ AlignmentPosition = [
     [6, 30, 58, 86, 114, 142, 170]
 ]
 
+# Return function to determine mask
+def getMaskPatternFunc(maskNumber : int):
+    if maskNumber == 0:
+        return lambda row, col: (row + column) % 2 == 0
+    if maskNumber == 1:
+        return lambda row, col: row % 2 == 0
+    if maskNumber == 2:
+        return lambda row, col: col % 3 == 0
+    if maskNumber == 3:
+        return lambda row, col: (row + col) % 3 == 0
+    if maskNumber == 4:
+        return lambda row, col: (floor(row / 2) + floor(col / 3)) % 2 == 0
+    if maskNumber == 5:
+        return lambda row, col: ((row * col) % 2) + ((row * col) % 3) == 0
+    if maskNumber == 6:
+        return lambda row, col: (((row * col) % 2) + ((row * col) % 3)) % 2 == 0
+    if maskNumber == 7:
+        return lambda row, col: (((row + col) % 2) + ((row * col) % 3)) % 2 == 0
+    raise ValueError("No Mask Number {0}".format(maskNumber))
+
+# Error Correction Dictionary for Format String Calculation
+ECDic = {
+    ErrorCorrection.L: 1,
+    ErrorCorrection.M: 0,
+    ErrorCorrection.Q: 2,
+    ErrorCorrection.H: 3,
+}
+
 class Module:
     #------------------------------
     # Converter: Convert Integer to RGB/RGBA as tuple
@@ -55,8 +85,9 @@ class Module:
     def int2rgba(self, value):
         return ((value >> 24) & 0xFF, (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
 
-    def __init__(self, dataBuffer, version):
+    def __init__(self, dataBuffer, version, errorCorrection):
         self.version = version
+        self.errorCorrection = errorCorrection
         #------------------------------
         # Construct QR
         #------------------------------
@@ -65,34 +96,15 @@ class Module:
         # Grey BG for debugging
         bg = self.int2rgb(0x888888)
 
-        # 2D Array
-        self.modules = [None] * self.size
-        for row in range(self.size):
-            self.modules[row] = [None] * self.size
+        
 
         #------------------------------
-        # Paint Patterns
+        # Test for every mask patterns
         #------------------------------
-        # Finder Pattern & Separators
-        self.paintFinderSeparatorPattern(0, 0)
-        self.paintFinderSeparatorPattern(self.size - 7, 0)
-        self.paintFinderSeparatorPattern(0, self.size - 7)
-        # Alignment Patterns
-        self.paintAlignmentPattern()
-        # Timing Patterns
-        self.paintTimingPattern()
-        # Dark Module
-        self.modules[(version*4)+9][8] = self.int2rgb(0)
-
-        #------------------------------
-        # Reserve the Format & Version Information Area
-        #------------------------------
-        self.reserveFormatVersionInfo()
-
-        #------------------------------
-        # Paint Datas
-        #------------------------------
-        self.paintDatas(dataBuffer)
+        #for i in range(8):
+        #    self.makeModule(i)
+        self.makeModule(4)
+        
 
         #------------------------------
         # Draw
@@ -110,6 +122,45 @@ class Module:
         #canvas.save("QR.jpg", "JPEG", quality=100, optimize=True)
         filename = "QR_" + str(version) + ".png"
         canvas.save(filename, "PNG", optimize=True)
+
+    #------------------------------
+    # Make Module (QR Code)
+    #------------------------------
+    # Parameters:
+    #   maskNumber: Mask pattern number (0~7)
+    def makeModule(self, maskNumber = 0):
+        # 2D Array / Create or Overwritten it as None
+        self.modules = [None] * self.size
+        for row in range(self.size):
+            self.modules[row] = [None] * self.size
+
+        #------------------------------
+        # Paint Patterns
+        #------------------------------
+        # Finder Pattern & Separators
+        self.paintFinderSeparatorPattern(0, 0)
+        self.paintFinderSeparatorPattern(self.size - 7, 0)
+        self.paintFinderSeparatorPattern(0, self.size - 7)
+        # Alignment Patterns
+        self.paintAlignmentPattern()
+        # Timing Patterns
+        self.paintTimingPattern()
+        # Dark Module
+        self.modules[(self.version*4)+9][8] = self.int2rgb(0)
+
+        #------------------------------
+        # Format & Version Information Area
+        #------------------------------
+        # Format Infos
+        self.paintFormatInfo(maskNumber)
+        # Version Infos (Version 7++)
+        if self.version >= 7:
+            self.paintVersionInfo(maskNumber)
+
+        #------------------------------
+        # Paint Datas
+        #------------------------------
+        #self.paintDatas(dataBuffer, maskNumber)
 
     #------------------------------
     # Finder Patterns & Separators
@@ -196,50 +247,91 @@ class Module:
                 self.modules[6][col] = self.int2rgb(0xFFFFFF)
 
     #------------------------------
-    # Reserve the Format Information Area
+    # Count bits from number
     #------------------------------
-    def reserveFormatVersionInfo(self):
-        reserve = self.int2rgb(0xFF)
+    def countBits(self, num):
+        cnt = 0
+        while num != 0:
+            cnt += 1
+            num >>= 1
+        return cnt
+
+    #------------------------------
+    # Format String Bits
+    #------------------------------
+    def get15bitsFormatString(self, first5bits):
+        # Create 15 bits data
+        data = first5bits << 10
+        
+        # While data has 11 bits or more (FormatStringGP has 11 bits)
+        while self.countBits(data) - self.countBits(FormatStringGP) >= 0:
+            # Pad generator polynomial to has a same bit size as data
+            paddedGP = FormatStringGP << (self.countBits(data) - self.countBits(FormatStringGP))
+            # XOR format string
+            data ^= paddedGP
+
+        # Now we have 10 bits data, put it behind first 5 bits
+        data |= (first5bits << 10)
+
+        # XOR with format string mask
+        data ^= FormatStringMask
+
+        return data
+
+
+    #------------------------------
+    # Format Information Area
+    #------------------------------
+    def paintFormatInfo(self, maskNumber):
+        # Format String
+        first5bits = (ECDic[self.errorCorrection] << 3) | maskNumber
+        dataToWrite = self.get15bitsFormatString(first5bits)
 
         #----------
         # Format (All Version) Infos
         #----------
         # Vertical
         for row in range(15):
+            # dataToWrite: Bit from left to right are most significant bit and least significant bit, respectively
+            write = (dataToWrite >> row) & 1
+
             if row < 6:
-                self.modules[row][8] = reserve
+                self.modules[row][8] = self.int2rgb(0) if write else self.int2rgb(0xFFFFFF)
             elif row < 8: # Skip timing
-                self.modules[row+1][8] = reserve
+                self.modules[row+1][8] = self.int2rgb(0) if write else self.int2rgb(0xFFFFFF)
             else: # Bottom Line
-                self.modules[self.size-15+row][8] = reserve
+                self.modules[self.size-15+row][8] = self.int2rgb(0) if write else self.int2rgb(0xFFFFFF)
 
         # Horizontal
         for col in range(15):
+            write = (dataToWrite >> (14-col)) & 1
             if col < 6:
-                self.modules[8][col] = reserve
+                self.modules[8][col] = self.int2rgb(0) if write else self.int2rgb(0xFFFFFF)
             elif col < 7: # Skip timing
-                self.modules[8][col+1] = reserve
+                self.modules[8][col+1] = self.int2rgb(0) if write else self.int2rgb(0xFFFFFF)
             else: # Right Line
-                self.modules[8][self.size-15+col] = reserve
+                self.modules[8][self.size-15+col] = self.int2rgb(0) if write else self.int2rgb(0xFFFFFF)
 
-        #----------
-        # Version Infos (Version 7++)
-        #----------
-        if self.version >= 7:
-            # Top-Right (3x6)
-            for row in range(6):
-                for col in range(3):
-                    self.modules[row][self.size-11+col] = reserve
+        
 
-            # Bottom-Left (6x3)
-            for row in range(3):
-                for col in range(6):
-                    self.modules[self.size-11+row][col] = reserve
+    #------------------------------
+    # Version Information Area
+    #------------------------------
+    def paintVersionInfo(self, maskNumber):
+        # Top-Right (3x6)
+        for row in range(6):
+            for col in range(3):
+                self.modules[row][self.size-11+col] = self.int2rgb(0xFF)
+
+        # Bottom-Left (6x3)
+        for row in range(3):
+            for col in range(6):
+                self.modules[self.size-11+row][col] = self.int2rgb(0xFF)
 
     #------------------------------
     # Datas
     #------------------------------
-    def paintDatas(self, dataBuffer):
+    def paintDatas(self, dataBuffer, maskNumber):
         totalDataBytes = len(dataBuffer.buffer)
         bitIndex = 7
         byteIndex = 0

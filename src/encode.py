@@ -194,7 +194,7 @@ def enc(string : str):
     print('------------------------------')
 
 
-    #Module(smallmsg, version)
+    Module(smallmsg, version, ErrorCorrection.L)
 
 
     print('-------- DEBUG 5-Q ------')

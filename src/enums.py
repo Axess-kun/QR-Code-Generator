@@ -73,3 +73,13 @@ RemainderBits = [
     3, 3, 3, 3, 0,  # 31 - 35
     0, 0, 0, 0, 0   # 36 - 40
 ]
+
+#------------------------------
+# Format & Version Information
+#------------------------------
+# Format String Generator Polynomial
+FormatStringGP = 0b10100110111
+# Format String Mask
+FormatStringMask = 0b101010000010010
+# Version String Generator Polynomial
+VersionStringGP = 0b1111100100101
