@@ -260,11 +260,11 @@ RS_BLOCK_TABLE = [
 ]
 
 class RSBlock:
-    def __init__(self, noDataCodeword, noEcCodeword):
+    def __init__(self, noDataCodeword: int, noEcCodeword: int):
         self.noDataCodeword = noDataCodeword
         self.noEcCodeword = noEcCodeword
 
-def blockinfo(version, errorCorrection : ErrorCorrection):
+def blockinfo(version: int, errorCorrection: ErrorCorrection):
     offset = int(errorCorrection)
     info = RS_BLOCK_TABLE[(version - 1) * 4 + offset]
 

@@ -2,53 +2,33 @@ from PIL import Image, ImageDraw
 from src.BitBuffer import BitBuffer
 from math import floor, ceil
 from src.enums import *
+from builtins import next
 
-AlignmentPosition = [
-    # Each line represent each version from 1 to 40 respectively
-    [],
-    [6, 18],
-    [6, 22],
-    [6, 26],
-    [6, 30],
-    [6, 34],
-    [6, 22, 38],
-    [6, 24, 42],
-    [6, 26, 46],
-    [6, 28, 50],
-    [6, 30, 54],
-    [6, 32, 58],
-    [6, 34, 62],
-    [6, 26, 46, 66],
-    [6, 26, 48, 70],
-    [6, 26, 50, 74],
-    [6, 30, 54, 78],
-    [6, 30, 56, 82],
-    [6, 30, 58, 86],
-    [6, 34, 62, 90],
-    [6, 28, 50, 72, 94],
-    [6, 26, 50, 74, 98],
-    [6, 30, 54, 78, 102],
-    [6, 28, 54, 80, 106],
-    [6, 32, 58, 84, 110],
-    [6, 30, 58, 86, 114],
-    [6, 34, 62, 90, 118],
-    [6, 26, 50, 74, 98, 122],
-    [6, 30, 54, 78, 102, 126],
-    [6, 26, 52, 78, 104, 130],
-    [6, 30, 56, 82, 108, 134],
-    [6, 34, 60, 86, 112, 138],
-    [6, 30, 58, 86, 114, 142],
-    [6, 34, 62, 90, 118, 146],
-    [6, 30, 54, 78, 102, 126, 150],
-    [6, 24, 50, 76, 102, 128, 154],
-    [6, 28, 54, 80, 106, 132, 158],
-    [6, 32, 58, 84, 110, 136, 162],
-    [6, 26, 54, 82, 110, 138, 166],
-    [6, 30, 58, 86, 114, 142, 170]
-]
+#------------------------------
+# Return list of alignment position
+# * Using Look Up Table for speed run -> comment outed
+#------------------------------
+#def getAlignmentPosition(version : int):
+#    if version == 1:
+#        return []
+#    else:
+#        align = (version // 7) + 2
+#        if version != 32:
+#            step = (((ver * 4) + (align * 2) + 1) // ((2 * align) - 2)) * 2
+#        else:
+#            step = 26
+#        result = [6]
+#        # Last position number
+#        pos = (version * 4) + 10
+#        for i in range(align - 1):
+#            result.insert(1, pos)
+#            pos -= step
+#        return result
 
+#------------------------------
 # Return function to determine mask
-def getMaskPatternFunc(maskNumber : int):
+#------------------------------
+def getMaskPatternFunc(maskNumber: int):
     if maskNumber == 0:
         return lambda row, col: (row + col) % 2 == 0
     if maskNumber == 1:
@@ -67,31 +47,24 @@ def getMaskPatternFunc(maskNumber : int):
         return lambda row, col: (((row + col) % 2) + ((row * col) % 3)) % 2 == 0
     raise ValueError("No Mask Number {0}".format(maskNumber))
 
-# Error Correction Dictionary for Format String Calculation
-ECDic = {
-    ErrorCorrection.L: 1,
-    ErrorCorrection.M: 0,
-    ErrorCorrection.Q: 3,
-    ErrorCorrection.H: 2,
-}
-
 class Module:
     #------------------------------
     # Converter: Convert Integer to RGB/RGBA as tuple
     #------------------------------
-    def int2rgb(self, value):
+    def int2rgb(self, value: int):
         return ((value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
 
-    def int2rgba(self, value):
+    def int2rgba(self, value: int):
         return ((value >> 24) & 0xFF, (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
 
-    def __init__(self, dataBuffer, version, errorCorrection):
+    def __init__(self, dataBuffer: BitBuffer, version: int, errorCorrection: ErrorCorrection):
         self.version = version
         self.errorCorrection = errorCorrection
         #------------------------------
         # Construct QR
         #------------------------------
-        self.size = (((version-1)*4)+21)
+        # Size
+        self.size = (version * 4) + 17 # Equivalent to (((version - 1) * 4) + 21)
 
         #------------------------------
         # Test for every mask patterns & find the best one
@@ -104,22 +77,17 @@ class Module:
             # Calculate penalty score
             penaltyScore = self.calcPenalty()
 
-            # Debug
-            print("loop={0} | penalty={1}".format(i, penaltyScore))
-
             # First loop or found better one
             if i == 0 or penaltyScore < minPenaltyScore:
                 minPenaltyScore = penaltyScore
                 bestMask = i
 
-        # Debug
-        print("bestMask = {0}".format(bestMask))
-        print("minPenaltyScore = {0}".format(minPenaltyScore))
-
         #------------------------------
         # Real Making
         #------------------------------
-        self.makeModule(dataBuffer, bestMask)
+        # Best mask is not last one, make it again!
+        if bestMask != 7:
+            self.makeModule(dataBuffer, bestMask)
 
         #------------------------------
         # Draw
@@ -145,7 +113,7 @@ class Module:
     #------------------------------
     # Parameters:
     #   maskNumber: Mask pattern number (0~7)
-    def makeModule(self, dataBuffer, maskNumber = 0):
+    def makeModule(self, dataBuffer: BitBuffer, maskNumber: int = 0):
         # 2D Array / Create or Overwritten it as None
         self.modules = [None] * self.size
         for row in range(self.size):
@@ -182,7 +150,7 @@ class Module:
     #------------------------------
     # Finder Patterns & Separators
     #------------------------------
-    def paintFinderSeparatorPattern(self, row, col):
+    def paintFinderSeparatorPattern(self, row: int, col: int):
         # Loop in 0 ~ 7 for Finder Pattern
         # Loop at -1, 8 for Separators
         for r in range(-1, 8):
@@ -266,7 +234,7 @@ class Module:
     #------------------------------
     # Count bits from number
     #------------------------------
-    def countBits(self, num):
+    def countBits(self, num: int):
         cnt = 0
         while num != 0:
             cnt += 1
@@ -276,7 +244,7 @@ class Module:
     #------------------------------
     # Format String Bits
     #------------------------------
-    def get15bitsFormatString(self, first5bits):
+    def get15bitsFormatString(self, first5bits: int):
         # Create 15 bits data
         data = first5bits << 10
         
@@ -317,7 +285,7 @@ class Module:
     #------------------------------
     # Format Information Area
     #------------------------------
-    def paintFormatInfo(self, maskNumber):
+    def paintFormatInfo(self, maskNumber: int):
         # Format String
         first5bits = (ECDic[self.errorCorrection] << 3) | maskNumber
         dataToWrite = self.get15bitsFormatString(first5bits)
@@ -368,7 +336,7 @@ class Module:
     #------------------------------
     # Datas
     #------------------------------
-    def paintDatas(self, dataBuffer, maskNumber):
+    def paintDatas(self, dataBuffer: BitBuffer, maskNumber: int):
         totalDataBytes = len(dataBuffer.buffer)
         bitIndex = 7
         byteIndex = 0
@@ -450,74 +418,38 @@ class Module:
         """
 
         score = 0
-        lastDot = None
-        sameCount = 1
-        # Horizontal
         for row in range(self.size):
-            for col in range(self.size):
-                # First Column
-                if col == 0:
-                    # Get this dot color / Black or White
-                    lastDot = self.modules[row][col]
-                # Last Column
-                elif col == self.size - 1:
-                    # Same as previous?
-                    if self.modules[row][col-1] == lastDot:
-                        sameCount += 1
-                    # Check
-                    if sameCount >= 5:
-                        score += (sameCount - 5) + 3
-                # Second~
+            lastDot = self.modules[row][0]
+            sameCount = 1
+            for col in range(1, self.size):
+                # Same color
+                if self.modules[row][col] == lastDot:
+                    sameCount += 1
+                    if sameCount == 5:
+                        score += 3
+                    elif sameCount > 5:
+                        score += 1
+                # Not same color
                 else:
-                    # Same as previous?
-                    if self.modules[row][col-1] == lastDot:
-                        sameCount += 1
-                    else:
-                        # Check
-                        if sameCount >= 5:
-                            score += (sameCount - 5) + 3
-                        # Renew lastDot color
-                        lastDot = self.modules[row][col]
-                        # Reset sameCount
-                        sameCount = 1
-
-        # Debug
-        colScore = score
-        print("column count: {0}".format(colScore))
+                    lastDot = self.modules[row][col]
+                    sameCount = 1
 
         # Vertical
         for col in range(self.size):
-            for row in range(self.size):
-                # First Row
-                if row == 0:
-                    # Get this dot color / Black or White
-                    lastDot = self.modules[row][col]
-                # Last Row
-                elif row == self.size - 1:
-                    # Same as previous?
-                    if self.modules[row-1][col] == lastDot:
-                        sameCount += 1
-                    # Check
-                    if sameCount >= 5:
-                        score += (sameCount - 5) + 3
-                # Second~
+            lastDot = self.modules[0][col]
+            sameCount = 1
+            for row in range(1, self.size):
+                # Same color
+                if self.modules[row][col] == lastDot:
+                    sameCount += 1
+                    if sameCount == 5:
+                        score += 3
+                    elif sameCount > 5:
+                        score += 1
+                # Not same color
                 else:
-                    # Same as previous?
-                    if self.modules[row-1][col] == lastDot:
-                        sameCount += 1
-                    else:
-                        # Check
-                        if sameCount >= 5:
-                            score += (sameCount - 5) + 3
-                        # Renew lastDot color
-                        lastDot = self.modules[row][col]
-                        # Reset sameCount
-                        sameCount = 1
-        # Debug
-        print("row count: {0}".format(score-colScore))
-
-        # Debug
-        print("penalty #1 = {0}".format(score))
+                    lastDot = self.modules[row][col]
+                    sameCount = 1
 
         return score
 
@@ -536,25 +468,48 @@ class Module:
         """
 
         score = 0
-        for row in range(self.size-1):
-            for col in range(self.size-1):
-                count = 0
-                if self.modules[row][col]:
-                    count += 1
-                if self.modules[row+1][col]:
-                    count += 1
-                if self.modules[row][col+1]:
-                    count += 1
-                if self.modules[row+1][col+1]:
-                    count += 1
-
-                # 2x2 White or 2x2 Black
-                if count == 0 or count == 4:
+        
+        # Optimized
+        moduleRange = range(self.size - 1)
+        for row in moduleRange:
+            # Use iterator and next() to skip next four-block
+            # e.g.
+            #   A B C
+            #   D E F
+            # Look at left rectangle ABED,
+            # if Top-Right != Botton-Right (B != E), then both ABED and BCEF won't lost any point
+            it = iter(moduleRange)
+            for col in it:
+                topRight = self.modules[row][col + 1]
+                if topRight != self.modules[row + 1][col + 1]:
+                    # Skip next one to reduce runtime
+                    # None: Raise nothing if there is no next item
+                    next(it, None)
+                elif topRight != self.modules[row][col]:
+                    continue
+                elif topRight != self.modules[row + 1][col]:
+                    continue
+                else:
                     score += 3
 
-        # Debug
-        print("penalty #2 = {0}".format(score))
-                    
+        #--------------------------------------------------
+        # Simple one
+        #for row in range(self.size-1):
+        #    for col in range(self.size-1):
+        #        count = 0
+        #        if self.modules[row][col]:
+        #            count += 1
+        #        if self.modules[row+1][col]:
+        #            count += 1
+        #        if self.modules[row][col+1]:
+        #            count += 1
+        #        if self.modules[row+1][col+1]:
+        #            count += 1
+        #        # 2x2 White or 2x2 Black
+        #        if count == 0 or count == 4:
+        #            score += 3
+        #--------------------------------------------------
+
         return score
 
     # Condition #3
@@ -562,41 +517,109 @@ class Module:
         """
         Looks for patterns of dark-light-dark-dark-dark-light-dark that have four light modules on either side.
         In other words, it looks for any of the following two patterns:
-        10111010000
+        10111010000 (0x5D0)
         OR
-        00001011101
+        00001011101 (0x05D)
         Each time this pattern is found, add 40 to the penalty score.
         """
-        # ^
-        # Check only dark-light-dark-dark-dark-light-dark (1011101) is fine
+        # ^ Same patterns at index 1, 4, 5, 6, 9 which values are 0, 1, 0, 1, 0 respectively
+
+        # Pattern1:     10111010000
+        # Pattern2: 00001011101
 
         score = 0
         # Horizontal
         for row in range(self.size):
-            for col in range(self.size-6):
-                if (self.modules[row][col] and
-                    not self.modules[row][col+1] and
-                    self.modules[row][col+2] and
-                    self.modules[row][col+3] and
-                    self.modules[row][col+4] and
-                    not self.modules[row][col+5] and
-                    self.modules[row][col+6]):
+            # Use iterator to skip those unmatched for sure
+            it = iter(range(self.size - 10))
+            for col in it:
+                if (    not self.modules[row][col+1]
+                    and     self.modules[row][col+4]
+                    and not self.modules[row][col+5]
+                    and     self.modules[row][col+6]
+                    and not self.modules[row][col+9]
+                    and (
+                            (       self.modules[row][col]
+                            and     self.modules[row][col+2]
+                            and     self.modules[row][col+3]
+                            and not self.modules[row][col+7]
+                            and not self.modules[row][col+8]
+                            and not self.modules[row][col+10]
+                            )
+                        or
+                            (   not self.modules[row][col]
+                            and not self.modules[row][col+2]
+                            and not self.modules[row][col+3]
+                            and     self.modules[row][col+7]
+                            and     self.modules[row][col+8]
+                            and     self.modules[row][col+10]
+                            )
+                        )
+                    ):
                     score += 40
+
+                # Boyer–Moore–Horspool algorithm
+                # if this_row[col + 10] == True,  Pattern1 shift 4, Pattern2 shift 2. So min=2.
+                # if this_row[col + 10] == False, Pattern1 shift 1, Pattern2 shift 1. So min=1.
+                if self.modules[row][col+10]:
+                    next(it, None)
 
         # Vertical
         for col in range(self.size):
-            for row in range(self.size-6):
-                if (self.modules[row][col] and
-                    not self.modules[row+1][col] and
-                    self.modules[row+2][col] and
-                    self.modules[row+3][col] and
-                    self.modules[row+4][col] and
-                    not self.modules[row+5][col] and
-                    self.modules[row+6][col]):
+            it = iter(range(self.size - 10))
+            for row in it:
+                if (    not self.modules[row+1][col]
+                    and     self.modules[row+4][col]
+                    and not self.modules[row+5][col]
+                    and     self.modules[row+6][col]
+                    and not self.modules[row+9][col]
+                    and (
+                            (       self.modules[row][col]
+                            and     self.modules[row+2][col]
+                            and     self.modules[row+3][col]
+                            and not self.modules[row+7][col]
+                            and not self.modules[row+8][col]
+                            and not self.modules[row+10][col]
+                            )
+                        or
+                            (   not self.modules[row][col]
+                            and not self.modules[row+2][col]
+                            and not self.modules[row+3][col]
+                            and     self.modules[row+7][col]
+                            and     self.modules[row+8][col]
+                            and     self.modules[row+10][col]
+                            )
+                        )
+                    ):
                     score += 40
 
-        # Debug
-        print("penalty #3 = {0}".format(score))
+                if self.modules[row+10][col]:
+                    next(it, None)
+
+        #--------------------------------------------------
+        # Slower, comment outed
+        ## Horizontal
+        #for row in range(self.size):
+        #    bits = 0
+        #    for col in range(self.size):
+        #        bits = ((bits << 1) & 0x7FF) # Keep 11 bits
+        #        bits |= 1 if self.modules[row][col] else 0
+
+        #        # Check from column 10~ & matched patterns
+        #        if col >= 10 and (bits in (0x5D0, 0x05D)):
+        #            score += 40
+
+        ## Vertical
+        #for col in range(self.size):
+        #    bits = 0
+        #    for row in range(self.size):
+        #        bits = ((bits << 1) & 0x7FF) # Keep 11 bits
+        #        bits |= 1 if self.modules[row][col] else 0
+
+        #        # Check from row 10~ & matched patterns
+        #        if row >= 10 and (bits in (0x5D0, 0x05D)):
+        #            score += 40
+        #--------------------------------------------------
 
         return score
 
@@ -628,8 +651,5 @@ class Module:
         # Step 4-7
         # Find smaller number from 2 numbers -> use // to throw away remainder
         score = (abs(percent - 50) // 5) * 10
-
-        # Debug
-        print("penalty #4 = {0}".format(score))
 
         return score

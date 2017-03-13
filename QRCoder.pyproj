@@ -47,6 +47,7 @@
     <Compile Include="src\gf256.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="src\lut.py" />
     <Compile Include="src\module_placement.py">
       <SubType>Code</SubType>
     </Compile>
