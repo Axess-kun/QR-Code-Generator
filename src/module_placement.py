@@ -1,8 +1,8 @@
-from PIL import Image, ImageDraw
-from src.BitBuffer import BitBuffer
+from PIL import Image
 from math import floor, ceil
-from src.constants import *
 from builtins import next
+from src.BitBuffer import BitBuffer
+from src.constants import *
 from src.look_up_table import AlignmentPosition
 
 # TODO: using thread to speed-up best mask test
@@ -72,7 +72,7 @@ Parameters
 # Module
 ####################################################################################################
 class Module:
-    def __init__(self, dataBuffer: BitBuffer, version: int, errorCorrection: ErrorCorrection):
+    def __init__(self, dataBuffer: BitBuffer, errorCorrection: ErrorCorrection, version: int):
         #------------------------------
         # Assign variable to member
         #------------------------------
@@ -116,6 +116,9 @@ class Module:
             for j in range(len(self.modules[i])):
                 if self.modules[i][j] is not None:
                     canvas.putpixel((j+1,i+1), self.int2rgb(0) if self.modules[i][j] else self.int2rgb(0xFFFFFF))
+
+        # Resize
+        canvas = canvas.resize((400, 400), Image.NEAREST)
 
         # Save
         canvas.save("QR.png", "PNG", optimize=True)

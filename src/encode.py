@@ -1,10 +1,10 @@
+from bisect import bisect_left
 from src.BitBuffer import BitBuffer
 from src.constants import *
 from src.rsBlocks import *
 from src.gf256 import Polynomial
-from src.look_up_table import *
-from src.module_placement import *
-from bisect import bisect_left
+from src.look_up_table import CapacityTable, GeneratorPolynomial
+from src.module_placement import Module
 
 """
 ### create() function ###
@@ -42,10 +42,11 @@ Parameters
     List of RSBlock.
 """
 
+
 ####################################################################################################
-# Encode
+# Create QR Code
 ####################################################################################################
-def enc(dataString: str, ecLevel: ErrorCorrection = None, version: int = None):
+def create(dataString: str, ecLevel: ErrorCorrection = None, version: int = None):
     #------------------------------
     # Auto Error Correction Level
     #------------------------------
@@ -288,7 +289,7 @@ def enc(dataString: str, ecLevel: ErrorCorrection = None, version: int = None):
     #------------------------------
     # Create
     #------------------------------
-    Module(msg, version, ecLevel)
+    Module(msg, ecLevel, version)
 
 
     ## Debug
