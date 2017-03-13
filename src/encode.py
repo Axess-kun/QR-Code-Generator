@@ -4,6 +4,7 @@ from src.blocks import *
 from src.gf256 import Polynomial
 from src.lut import *
 from src.module_placement import *
+from bisect import bisect_left, bisect, bisect_right
 
 #----------
 # EC Coding for each block & Create final sequence
@@ -106,10 +107,14 @@ def checkKanji(dataString: str):
     return True
 
 
-def enc(dataString: str, version = None, ecLevel = None):
-    # TODO: Find best fit
-    version = 1
-    ecLevel = ErrorCorrection.Q
+def enc(dataString: str, ecLevel: ErrorCorrection = None, version: int = None):
+    # Auto Error Correction Level
+    if ecLevel is None:
+        ecLevel = ErrorCorrection.H
+
+    # Check Version
+    if version is not None and (version < 1 or version > 40):
+        raise ValueError("Wrong version!!")
 
     # Create Bit Buffer
     buff = BitBuffer()
@@ -133,6 +138,30 @@ def enc(dataString: str, version = None, ecLevel = None):
         mode = int(ModeIndicator.KANJI)
     else:
         mode = int(ModeIndicator.BYTE)
+
+    #------------------------------
+    # Find best fit version
+    #------------------------------
+    if version is None:
+        # Create list of capacities in every mode by version from error correction level
+        listByVersion = [CapacityTable[i] for i in range(int(ecLevel), len(CapacityTable), 4)]
+
+        # Create capacity list in specific mode
+        capacityList = []
+        if mode == int(ModeIndicator.NUMERIC):
+            capacityList = list(map(lambda x: x[0], listByVersion))
+        elif mode == int(ModeIndicator.ALPHANUM):
+            capacityList = list(map(lambda x: x[1], listByVersion))
+        elif mode == int(ModeIndicator.BYTE):
+            capacityList = list(map(lambda x: x[2], listByVersion))
+        else:
+            capacityList = list(map(lambda x: x[3], listByVersion))
+
+        # Get version by searching index to insert data
+        version = bisect_left(capacityList, len(dataString)) + 1
+
+        if version > 40:
+            raise OverflowError("Data Overflow!")
 
     #------------------------------
     # Pre-encode Data

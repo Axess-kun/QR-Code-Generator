@@ -45,6 +45,9 @@ NumericLength = { 3 : 10, 2 : 7, 1 : 4 }
 
 #------------------------------
 # Regular Expression
+#   [...]   Matches any single character in brackets.
+#   *       Matches 0 or more occurrences of preceding expression.
+#   $       Matches end of line.
 #------------------------------
 Numeric_Regex = re.compile("[0-9]*$")
 AlphaNum_Regex = re.compile("[0-9A-Z $%*+-./:]*$")
