@@ -1,69 +1,83 @@
 from PIL import Image, ImageDraw
 from src.BitBuffer import BitBuffer
 from math import floor, ceil
-from src.enums import *
+from src.constants import *
 from builtins import next
+from src.look_up_table import AlignmentPosition
 
-#------------------------------
-# Return list of alignment position
-# * Using Look Up Table for speed run -> comment outed
-#------------------------------
-#def getAlignmentPosition(version : int):
-#    if version == 1:
-#        return []
-#    else:
-#        align = (version // 7) + 2
-#        if version != 32:
-#            step = (((ver * 4) + (align * 2) + 1) // ((2 * align) - 2)) * 2
-#        else:
-#            step = 26
-#        result = [6]
-#        # Last position number
-#        pos = (version * 4) + 10
-#        for i in range(align - 1):
-#            result.insert(1, pos)
-#            pos -= step
-#        return result
+# TODO: using thread to speed-up best mask test
 
-#------------------------------
-# Return function to determine mask
-#------------------------------
-def getMaskPatternFunc(maskNumber: int):
-    if maskNumber == 0:
-        return lambda row, col: (row + col) % 2 == 0
-    if maskNumber == 1:
-        return lambda row, col: row % 2 == 0
-    if maskNumber == 2:
-        return lambda row, col: col % 3 == 0
-    if maskNumber == 3:
-        return lambda row, col: (row + col) % 3 == 0
-    if maskNumber == 4:
-        return lambda row, col: (floor(row / 2) + floor(col / 3)) % 2 == 0
-    if maskNumber == 5:
-        return lambda row, col: ((row * col) % 2) + ((row * col) % 3) == 0
-    if maskNumber == 6:
-        return lambda row, col: (((row * col) % 2) + ((row * col) % 3)) % 2 == 0
-    if maskNumber == 7:
-        return lambda row, col: (((row + col) % 2) + ((row * col) % 3)) % 2 == 0
-    raise ValueError("No Mask Number {0}".format(maskNumber))
+"""
+### Module class ###
+Members
+- version: int
+    Version of QR Code.
+- errorCorrection: constants.ErrorCorrection
+    Error Correction Level of QR Code.
+- size: int
+    Module size (width and height) of QR Code.
+- modules: list[list, list, ...]
+    2D Array of lists.
+    Contains None, True, False as flag for drawing dark (black) or light (white) module.
 
+Methods
+- makeModule(BitBuffer dataBuffer, int maskNumber) -> void
+    Create QR Code from "dataBuffer" with mask pattern "maskNumber".
+- paintFinderSeparatorPattern(int row, int col) -> void
+    Paint finder separator pattern at "row" and "col" where "row" and "col" are Top-Left of pattern.
+- paintAlignmentPattern() -> void
+    Paint alignment pattern of that QR version.
+- paintTimingPattern() -> void
+    Paint timing pattern.
+- paintFormatInfo(int maskNumber) -> void
+    Paint format information with mask "maskNumber".
+- paintVersionInfo() -> void
+    Paint version information (when version is 7 or above).
+- paintDatas(BitBuffer dataBuffer, int maskNumber) -> void
+    Paint data from "dataBuffer" with mask "maskNumber".
+
+- countBits(int num) -> int
+    Count number of bits from binary number "num".
+- get15bitsFormatString(int first5bits) -> int
+    Create 15 bits format information string.
+- get18bitsVersionString() -> int
+    Create 18 bits version information string.
+
+- calcPenaltyScore() -> int
+    Calculate total penalty score with 4 rules.
+- calcPenaltyScoreRule1() -> int
+    Calculate penalty score using rule #1.
+- calcPenaltyScoreRule2() -> int
+    Calculate penalty score using rule #2.
+- calcPenaltyScoreRule3() -> int
+    Calculate penalty score using rule #3.
+- calcPenaltyScoreRule4() -> int
+    Calculate penalty score using rule #4.
+
+- int2rgb(int value) -> tuple(R, G, B)
+    Convert "value" number to tuple as R, G, B values.
+- int2rgba(int value) -> tuple(R, G, B, A)
+    Convert "value" number to tuple as R, G, B, A values.
+
+
+### getMaskPatternFunc() function ###
+Get lambda function of specific mask pattern.
+
+Parameters
+- maskNumber: int
+    Mask pattern, from 0 to 7.
+"""
+
+####################################################################################################
+# Module
+####################################################################################################
 class Module:
-    #------------------------------
-    # Converter: Convert Integer to RGB/RGBA as tuple
-    #------------------------------
-    def int2rgb(self, value: int):
-        return ((value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
-
-    def int2rgba(self, value: int):
-        return ((value >> 24) & 0xFF, (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
-
     def __init__(self, dataBuffer: BitBuffer, version: int, errorCorrection: ErrorCorrection):
+        #------------------------------
+        # Assign variable to member
+        #------------------------------
         self.version = version
         self.errorCorrection = errorCorrection
-        #------------------------------
-        # Construct QR
-        #------------------------------
-        # Size
         self.size = (version * 4) + 17 # Equivalent to (((version - 1) * 4) + 21)
 
         #------------------------------
@@ -72,12 +86,12 @@ class Module:
         bestMask = 0
         minPenaltyScore = 0
         for i in range(8):
-            # Create QR
+            # Create QR.
             self.makeModule(dataBuffer, i)
-            # Calculate penalty score
-            penaltyScore = self.calcPenalty()
+            # Calculate penalty score.
+            penaltyScore = self.calcPenaltyScore()
 
-            # First loop or found better one
+            # First loop or found better one.
             if i == 0 or penaltyScore < minPenaltyScore:
                 minPenaltyScore = penaltyScore
                 bestMask = i
@@ -92,29 +106,32 @@ class Module:
         #------------------------------
         # Draw
         #------------------------------
-        # White BG
+        # White BG.
         bg = self.int2rgb(0xFFFFFF)
         # Blank Canvas with White Border
         canvas = Image.new("RGB", (self.size+2, self.size+2), bg)
         
-        # Put data into each module
+        # Put data into each module.
         for i in range(len(self.modules)):
             for j in range(len(self.modules[i])):
                 if self.modules[i][j] is not None:
-                    canvas.putpixel((j+1,i+1), self.int2rgb(0) if self.modules[i][j] == True else self.int2rgb(0xFFFFFF))
+                    canvas.putpixel((j+1,i+1), self.int2rgb(0) if self.modules[i][j] else self.int2rgb(0xFFFFFF))
 
         # Save
-        #canvas.save("QR.jpg", "JPEG", quality=100, optimize=True)
-        filename = "QR_" + str(version) + ".png"
-        canvas.save(filename, "PNG", optimize=True)
+        canvas.save("QR.png", "PNG", optimize=True)
 
-    #------------------------------
+
+    #****************************************************************************************************
+    #--------------------------------------------------
     # Make Module (QR Code)
-    #------------------------------
+    #
     # Parameters:
-    #   maskNumber: Mask pattern number (0~7)
+    #   maskNumber: Mask pattern number 0 to 7.
+    #--------------------------------------------------
     def makeModule(self, dataBuffer: BitBuffer, maskNumber: int = 0):
-        # 2D Array / Create or Overwritten it as None
+        #------------------------------
+        # Create or Overwritten it as None / 2D Array
+        #------------------------------
         self.modules = [None] * self.size
         for row in range(self.size):
             self.modules[row] = [None] * self.size
@@ -136,9 +153,9 @@ class Module:
         #------------------------------
         # Format & Version Information Area
         #------------------------------
-        # Format Infos
+        # Format Infos.
         self.paintFormatInfo(maskNumber)
-        # Version Infos (Version 7++)
+        # Version Infos (Version 7 or above)
         if self.version >= 7:
             self.paintVersionInfo()
 
@@ -147,12 +164,13 @@ class Module:
         #------------------------------
         self.paintDatas(dataBuffer, maskNumber)
 
-    #------------------------------
+
+    #--------------------------------------------------
     # Finder Patterns & Separators
-    #------------------------------
+    #--------------------------------------------------
     def paintFinderSeparatorPattern(self, row: int, col: int):
-        # Loop in 0 ~ 7 for Finder Pattern
-        # Loop at -1, 8 for Separators
+        # Loop in 0 ~ 7 for Finder Pattern.
+        # Loop at -1, 8 for Separators.
         for r in range(-1, 8):
             # Out of range
             if (row + r) < 0 or (row + r) >= self.size:
@@ -176,25 +194,26 @@ class Module:
                     # White
                     self.modules[row + r][col + c] = False
 
-    #------------------------------
+
+    #--------------------------------------------------
     # Alignment Patterns
-    #------------------------------
+    #--------------------------------------------------
     def paintAlignmentPattern(self):
         # All possible position
         pos = AlignmentPosition[self.version - 1]
 
-        # Loop for each pair
+        # Loop for each pair.
         for i in range(len(pos)):
             for j in range(len(pos)):
-                # Current row & column (middle of alignment pattern to be placed)
+                # Current row & column (middle of alignment pattern to be placed).
                 row = pos[i]
                 col = pos[j]
 
-                # Check if finder pattern placed -> Nothing to do with this position
+                # Check if finder pattern placed -> Nothing to do with this position.
                 if self.modules[row][col] is not None:
                     continue
 
-                # Else, loop for drawing
+                # Else, loop for drawing.
                 for r in range(-2, 3):
                     for c in range(-2, 3):
                         if (r == -2 or r == 2 # Vertical Border
@@ -209,11 +228,12 @@ class Module:
                             # White
                             self.modules[row + r][col + c] = False
 
-    #------------------------------
+    
+    #--------------------------------------------------
     # Timing Patterns
-    #------------------------------
+    #--------------------------------------------------
     def paintTimingPattern(self):
-        # Vertical loop from 8 ~ size-9
+        # Vertical loop from 8 ~ size - 9
         for row in range(8, self.size - 8):
             if self.modules[row][6] is not None:
                 continue
@@ -231,60 +251,10 @@ class Module:
             else:
                 self.modules[6][col] = False
 
-    #------------------------------
-    # Count bits from number
-    #------------------------------
-    def countBits(self, num: int):
-        cnt = 0
-        while num != 0:
-            cnt += 1
-            num >>= 1
-        return cnt
-
-    #------------------------------
-    # Format String Bits
-    #------------------------------
-    def get15bitsFormatString(self, first5bits: int):
-        # Create 15 bits data
-        data = first5bits << 10
-        
-        # While data has 11 bits or more (FormatStringGP has 11 bits)
-        while self.countBits(data) - self.countBits(FormatStringGP) >= 0:
-            # Pad generator polynomial to has a same bit size as data
-            paddedGP = FormatStringGP << (self.countBits(data) - self.countBits(FormatStringGP))
-            # XOR format string
-            data ^= paddedGP
-
-        # Now we have 10 bits data, put it behind first 5 bits
-        data |= (first5bits << 10)
-
-        # XOR with format string mask
-        data ^= FormatStringMask
-
-        return data
-
-    #------------------------------
-    # Version String Bits
-    #------------------------------
-    def get18bitsVersionString(self):
-        # Create 18 bits data, first 6 bits is version in binary
-        data = self.version << 12
-        
-        # While data has 13 bits or more (VersionStringGP has 13 bits)
-        while self.countBits(data) - self.countBits(VersionStringGP) >= 0:
-            # Pad generator polynomial to has a same bit size as data
-            paddedGP = VersionStringGP << (self.countBits(data) - self.countBits(VersionStringGP))
-            # XOR format string
-            data ^= paddedGP
-
-        # Now we have 12 bits data, put it behind first 6 bits
-        data |= (self.version << 12)
-
-        return data
-
-    #------------------------------
+    
+    #--------------------------------------------------
     # Format Information Area
-    #------------------------------
+    #--------------------------------------------------
     def paintFormatInfo(self, maskNumber: int):
         # Format String
         first5bits = (ECDic[self.errorCorrection] << 3) | maskNumber
@@ -292,7 +262,7 @@ class Module:
 
         # Vertical
         for row in range(15):
-            # dataToWrite: Bit from left to right are most significant bit and least significant bit, respectively
+            # dataToWrite: Bit from left to right are most significant bit and least significant bit, respectively.
             write = ((dataToWrite >> row) & 1) == 1
 
             if row < 6:
@@ -313,10 +283,9 @@ class Module:
                 self.modules[8][self.size-15+col] = write
 
         
-
-    #------------------------------
+    #--------------------------------------------------
     # Version Information Area
-    #------------------------------
+    #--------------------------------------------------
     def paintVersionInfo(self):
         # Version String
         dataToWrite = self.get18bitsVersionString()
@@ -333,9 +302,10 @@ class Module:
                 write = ((dataToWrite >> ((col * 3) + row)) & 1) == 1
                 self.modules[self.size-11+row][col] = write
 
-    #------------------------------
+
+    #--------------------------------------------------
     # Datas
-    #------------------------------
+    #--------------------------------------------------
     def paintDatas(self, dataBuffer: BitBuffer, maskNumber: int):
         totalDataBytes = len(dataBuffer.buffer)
         bitIndex = 7
@@ -361,13 +331,13 @@ class Module:
                     # Blank slot
                     if self.modules[row][col] is None:
                         # Data to be written
-                        # If capacity is not filled, get White color
+                        # If capacity is not filled, get White color.
                         write = False
 
                         # Still readable
                         if byteIndex < totalDataBytes:
-                            # Get bit by byteIndex & bitIndex
-                            # bitIndex is from right to left as 0~7 respectively
+                            # Get bit by byteIndex & bitIndex.
+                            # bitIndex is from right to left as 0~7 respectively.
                             write = ((dataBuffer[byteIndex] >> bitIndex) & 1) == 1
                             # Used 1 bit
                             bitIndex -= 1
@@ -383,32 +353,92 @@ class Module:
                             if bitIndex == -1:
                                 bitIndex = 7
                                 byteIndex += 1
-                        # Unreadable // If capacity is filled, nothing like this can be happened
+                        # Unreadable // If capacity is filled, nothing like this can be happened.
                         else:
                             break
 
                 # Next row
                 row += rowInc
 
-                # Hit top or bottom
+                # Hit top or bottom.
                 if row < 0 or row >= self.size:
-                    row -= rowInc # Go back 1 step
-                    rowInc *= -1 # Swap direction
+                    row -= rowInc # Go back 1 step.
+                    rowInc *= -1 # Swap direction.
                     break
 
-    #------------------------------
+
+    #****************************************************************************************************
+    #--------------------------------------------------
+    # Count bits from number
+    #--------------------------------------------------
+    def countBits(self, num: int):
+        cnt = 0
+        while num != 0:
+            cnt += 1
+            num >>= 1
+        return cnt
+
+
+    #--------------------------------------------------
+    # Format String Bits
+    #--------------------------------------------------
+    def get15bitsFormatString(self, first5bits: int):
+        # Create 15 bits data.
+        data = first5bits << 10
+        
+        # While data has 11 bits or more (FormatStringGP has 11 bits).
+        while self.countBits(data) - self.countBits(FormatStringGP) >= 0:
+            # Pad generator polynomial to has a same bit size as data.
+            paddedGP = FormatStringGP << (self.countBits(data) - self.countBits(FormatStringGP))
+            # XOR format string.
+            data ^= paddedGP
+
+        # Now we have 10 bits data, put it behind first 5 bits.
+        data |= (first5bits << 10)
+
+        # XOR with format string mask.
+        data ^= FormatStringMask
+
+        return data
+
+
+    #--------------------------------------------------
+    # Version String Bits
+    #--------------------------------------------------
+    def get18bitsVersionString(self):
+        # Create 18 bits data, first 6 bits is version in binary.
+        data = self.version << 12
+        
+        # While data has 13 bits or more (VersionStringGP has 13 bits).
+        while self.countBits(data) - self.countBits(VersionStringGP) >= 0:
+            # Pad generator polynomial to has a same bit size as data.
+            paddedGP = VersionStringGP << (self.countBits(data) - self.countBits(VersionStringGP))
+            # XOR format string.
+            data ^= paddedGP
+
+        # Now we have 12 bits data, put it behind first 6 bits.
+        data |= (self.version << 12)
+
+        return data
+
+
+    #****************************************************************************************************
+    #--------------------------------------------------
     # Calculate Penalty Scores of Masking
-    #------------------------------
-    def calcPenalty(self):
-        score = self.calcPenalty1()
-        score += self.calcPenalty2()
-        score += self.calcPenalty3()
-        score += self.calcPenalty4()
+    #--------------------------------------------------
+    def calcPenaltyScore(self):
+        score = self.calcPenaltyScoreRule1()
+        score += self.calcPenaltyScoreRule2()
+        score += self.calcPenaltyScoreRule3()
+        score += self.calcPenaltyScoreRule4()
 
         return score
 
+
+    #--------------------------------------------------
     # Condition #1
-    def calcPenalty1(self):
+    #--------------------------------------------------
+    def calcPenaltyScoreRule1(self):
         """
         Check each row one-by-one.
         If there are five consecutive modules of the same color, add 3 to the penalty.
@@ -453,8 +483,11 @@ class Module:
 
         return score
 
+
+    #--------------------------------------------------
     # Condition #2
-    def calcPenalty2(self):
+    #--------------------------------------------------
+    def calcPenaltyScoreRule2(self):
         """
         Look for areas of the same color that are at least 2x2 modules or larger.
         The QR code specification says that for a solid-color block of size m × n, the penalty score is 3 × (m - 1) × (n - 1).
@@ -472,18 +505,18 @@ class Module:
         # Optimized
         moduleRange = range(self.size - 1)
         for row in moduleRange:
-            # Use iterator and next() to skip next four-block
+            # Use iterator and next() to skip next four-block.
             # e.g.
             #   A B C
             #   D E F
             # Look at left rectangle ABED,
-            # if Top-Right != Botton-Right (B != E), then both ABED and BCEF won't lost any point
+            # if Top-Right != Botton-Right (B != E), then both ABED and BCEF won't lost any point.
             it = iter(moduleRange)
             for col in it:
                 topRight = self.modules[row][col + 1]
                 if topRight != self.modules[row + 1][col + 1]:
-                    # Skip next one to reduce runtime
-                    # None: Raise nothing if there is no next item
+                    # Skip next one to reduce runtime.
+                    # None: Raise nothing if there is no next item.
                     next(it, None)
                 elif topRight != self.modules[row][col]:
                     continue
@@ -512,8 +545,11 @@ class Module:
 
         return score
 
+
+    #--------------------------------------------------
     # Condition #3
-    def calcPenalty3(self):
+    #--------------------------------------------------
+    def calcPenaltyScoreRule3(self):
         """
         Looks for patterns of dark-light-dark-dark-dark-light-dark that have four light modules on either side.
         In other words, it looks for any of the following two patterns:
@@ -522,7 +558,8 @@ class Module:
         00001011101 (0x05D)
         Each time this pattern is found, add 40 to the penalty score.
         """
-        # ^ Same patterns at index 1, 4, 5, 6, 9 which values are 0, 1, 0, 1, 0 respectively
+        # ^
+        # Same patterns at index 1, 4, 5, 6, 9 which values are 0, 1, 0, 1, 0 respectively.
 
         # Pattern1:     10111010000
         # Pattern2: 00001011101
@@ -530,7 +567,7 @@ class Module:
         score = 0
         # Horizontal
         for row in range(self.size):
-            # Use iterator to skip those unmatched for sure
+            # Use iterator to skip those unmatched for sure.
             it = iter(range(self.size - 10))
             for col in it:
                 if (    not self.modules[row][col+1]
@@ -558,7 +595,7 @@ class Module:
                     ):
                     score += 40
 
-                # Boyer–Moore–Horspool algorithm
+                # Boyer–Moore–Horspool algorithm.
                 # if this_row[col + 10] == True,  Pattern1 shift 4, Pattern2 shift 2. So min=2.
                 # if this_row[col + 10] == False, Pattern1 shift 1, Pattern2 shift 1. So min=1.
                 if self.modules[row][col+10]:
@@ -605,7 +642,7 @@ class Module:
         #        bits = ((bits << 1) & 0x7FF) # Keep 11 bits
         #        bits |= 1 if self.modules[row][col] else 0
 
-        #        # Check from column 10~ & matched patterns
+        #        # Check from column 10~ & matched patterns.
         #        if col >= 10 and (bits in (0x5D0, 0x05D)):
         #            score += 40
 
@@ -616,15 +653,18 @@ class Module:
         #        bits = ((bits << 1) & 0x7FF) # Keep 11 bits
         #        bits |= 1 if self.modules[row][col] else 0
 
-        #        # Check from row 10~ & matched patterns
+        #        # Check from row 10~ & matched patterns.
         #        if row >= 10 and (bits in (0x5D0, 0x05D)):
         #            score += 40
         #--------------------------------------------------
 
         return score
 
+
+    #--------------------------------------------------
     # Condition #4
-    def calcPenalty4(self):
+    #--------------------------------------------------
+    def calcPenaltyScoreRule4(self):
         """
         Do the following steps:
         1. Count the total number of modules in the matrix.
@@ -649,7 +689,64 @@ class Module:
         # Step 1, 3
         percent = (darkCount / (self.size * self.size)) * 100.0
         # Step 4-7
-        # Find smaller number from 2 numbers -> use // to throw away remainder
+        # Find smaller number from 2 numbers -> use // to throw away remainder.
         score = (abs(percent - 50) // 5) * 10
 
         return score
+
+
+    #****************************************************************************************************
+    #--------------------------------------------------
+    # Converter: Convert Integer to RGB/RGBA as tuple
+    #--------------------------------------------------
+    def int2rgb(self, value: int):
+        return ((value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
+
+    def int2rgba(self, value: int):
+        return ((value >> 24) & 0xFF, (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
+
+
+####################################################################################################
+# Return lambda function to determine mask.
+####################################################################################################
+def getMaskPatternFunc(maskNumber: int):
+    if maskNumber == 0:
+        return lambda row, col: (row + col) % 2 == 0
+    if maskNumber == 1:
+        return lambda row, col: row % 2 == 0
+    if maskNumber == 2:
+        return lambda row, col: col % 3 == 0
+    if maskNumber == 3:
+        return lambda row, col: (row + col) % 3 == 0
+    if maskNumber == 4:
+        return lambda row, col: (floor(row / 2) + floor(col / 3)) % 2 == 0
+    if maskNumber == 5:
+        return lambda row, col: ((row * col) % 2) + ((row * col) % 3) == 0
+    if maskNumber == 6:
+        return lambda row, col: (((row * col) % 2) + ((row * col) % 3)) % 2 == 0
+    if maskNumber == 7:
+        return lambda row, col: (((row + col) % 2) + ((row * col) % 3)) % 2 == 0
+    raise ValueError("No Mask Number {0}".format(maskNumber))
+
+
+####################################################################################################
+# Return list of alignment position.
+# Code from github.com/nayuki/QR-Code-generator/
+# *** Using Look Up Table for speed run -> comment outed.
+####################################################################################################
+#def getAlignmentPosition(version : int):
+#    if version == 1:
+#        return []
+#    else:
+#        align = (version // 7) + 2
+#        if version != 32:
+#            step = (((ver * 4) + (align * 2) + 1) // ((2 * align) - 2)) * 2
+#        else:
+#            step = 26
+#        result = [6]
+#        # Last position number
+#        pos = (version * 4) + 10
+#        for i in range(align - 1):
+#            result.insert(1, pos)
+#            pos -= step
+#        return result

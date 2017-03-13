@@ -35,19 +35,19 @@
     <Compile Include="src\BitBuffer.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="src\blocks.py">
+    <Compile Include="src\rsBlocks.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="src\encode.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="src\enums.py">
+    <Compile Include="src\constants.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="src\gf256.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="src\lut.py" />
+    <Compile Include="src\look_up_table.py" />
     <Compile Include="src\module_placement.py">
       <SubType>Code</SubType>
     </Compile>

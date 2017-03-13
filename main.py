@@ -1,12 +1,13 @@
 import sys
 from src.encode import enc
-from src.enums import ErrorCorrection
+from src.constants import ErrorCorrection
 
 def main():
     #enc('0123')
-    #enc('HELLO WORLD')
-    enc('abcdefg')
-    #enc('abcdefg', ErrorCorrection.Q, 40)
+    enc('HELLO WORLD')
+    #enc('HELLO WORLD', ErrorCorrection.H, 1)
+    #enc('abcdefg')
+    #enc('abcdefg', ErrorCorrection.Q, 10)
     #enc('漢字')
     #enc('ＡＢＣ０')
     #enc('large data buffer, 0123456789 ABCDEF', ErrorCorrection.Q)

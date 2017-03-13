@@ -45,3 +45,8 @@ Step 07
 - Find best mask & create the best one
 - Change RS_BLOCK_TABLE for easy to copy and paste from site
 - Create QR Code
+
+Step 08
+- Optimize penalty score calculation
+- Find best fit version
+- Reconstruct project file & function definition & etc.
