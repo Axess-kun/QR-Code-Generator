@@ -34,7 +34,7 @@ pip install enum34
 Most of look up table are copied from [Thonky] tables.
 Then, edit in Notepad++ and copy to python file.
 
-Each step of debugging, generated QR code from this project are compare with [Thonky] & [RACO Industries](https://racoindustries.com/barcodegenerator/2d/qr-code/).
+Each step of debugging, generated QR codes from this project are compare with [Thonky] & [RACO Industries](https://racoindustries.com/barcodegenerator/2d/qr-code/).
 
 
 [//]: # (Reference links. See more infos @ http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
