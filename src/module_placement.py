@@ -1,14 +1,35 @@
 from PIL import Image
 from math import floor, ceil
 from builtins import next
+from multiprocessing import Pool
 from src.BitBuffer import BitBuffer
 from src.constants import *
 from src.look_up_table import AlignmentPosition
 
-# TODO: using thread to speed-up best mask test
 
 """
+### getPenaltyScore() function ###
+Calculate & return penalty score.
+
+Parameters
+- args: tuple
+    args is tuple of (BitBuffer dataBuffer, ErrorCorrection errorCorrection, int version, int maskNumber) respectively.
+
+
+### QR class ###
+Main QR construction class.
+Test all 8 mask patterns and create the best one.
+
+Methods
+- int2rgb(int value) -> tuple(R, G, B)
+    Convert "value" number to tuple as R, G, B values.
+- int2rgba(int value) -> tuple(R, G, B, A)
+    Convert "value" number to tuple as R, G, B, A values.
+
+
 ### Module class ###
+Module of QR Code
+
 Members
 - version: int
     Version of QR Code.
@@ -54,11 +75,6 @@ Methods
 - calcPenaltyScoreRule4() -> int
     Calculate penalty score using rule #4.
 
-- int2rgb(int value) -> tuple(R, G, B)
-    Convert "value" number to tuple as R, G, B values.
-- int2rgba(int value) -> tuple(R, G, B, A)
-    Convert "value" number to tuple as R, G, B, A values.
-
 
 ### getMaskPatternFunc() function ###
 Get lambda function of specific mask pattern.
@@ -68,40 +84,75 @@ Parameters
     Mask pattern, from 0 to 7.
 """
 
+
 ####################################################################################################
-# Module
+# Multiprocessing Pool Function
 ####################################################################################################
-class Module:
+def getPenaltyScore(args: tuple):
+    dataBuffer, errorCorrection, version, maskNumber = args
+    # Create module.
+    module = Module(dataBuffer, errorCorrection, version, maskNumber)
+    # Calculate penalty score.
+    score = module.calcPenaltyScore()
+    # Wrapped it with mask pattern.
+    return (score, maskNumber)
+
+
+####################################################################################################
+# QR
+####################################################################################################
+class QR:
     def __init__(self, dataBuffer: BitBuffer, errorCorrection: ErrorCorrection, version: int):
         #------------------------------
-        # Assign variable to member
+        # Size
         #------------------------------
-        self.version = version
-        self.errorCorrection = errorCorrection
-        self.size = (version * 4) + 17 # Equivalent to (((version - 1) * 4) + 21)
-
+        size = (version * 4) + 17 # Equivalent to (((version - 1) * 4) + 21)
+        
         #------------------------------
         # Test for every mask patterns & find the best one
+        # using multiprocessing.Pool for speed run.
         #------------------------------
-        bestMask = 0
-        minPenaltyScore = 0
-        for i in range(8):
-            # Create QR.
-            self.makeModule(dataBuffer, i)
-            # Calculate penalty score.
-            penaltyScore = self.calcPenaltyScore()
+        # Create Pool
+        pool = Pool()
 
-            # First loop or found better one.
-            if i == 0 or penaltyScore < minPenaltyScore:
-                minPenaltyScore = penaltyScore
-                bestMask = i
+        # Calculate all 8 patterns
+        scores = pool.map(getPenaltyScore, [(dataBuffer, errorCorrection, version, i) for i in range(8)])
+
+        # Wait for finished
+        pool.close()
+        pool.join()
+
+        # Find minimum & take its value
+        minPenaltyScore = min(scores)
+        bestMask = minPenaltyScore[1]
 
         #------------------------------
-        # Real Making
+        # Make the best one
         #------------------------------
-        # Best mask is not last one, make it again!
-        if bestMask != 7:
-            self.makeModule(dataBuffer, bestMask)
+        module = Module(dataBuffer, errorCorrection, version, bestMask)
+        
+        #--------------------------------------------------
+        # Simple one. In version 40, slower than Pool() about 32 times
+        #bestMask = 0
+        #minPenaltyScore = 0
+        #for i in range(8):
+        #    # Create QR.
+        #    module = Module(dataBuffer, errorCorrection, version, i)
+        #    # Calculate penalty score.
+        #    penaltyScore = module.calcPenaltyScore()
+        #
+        #    # First loop or found better one.
+        #    if i == 0 or penaltyScore < minPenaltyScore:
+        #        minPenaltyScore = penaltyScore
+        #        bestMask = i
+        #
+        ##------------------------------
+        ## Real Making
+        ##------------------------------
+        ## Best mask is not last one, make it again!
+        #if bestMask != 7:
+        #    module = Module(dataBuffer, errorCorrection, version, bestMask)
+        #--------------------------------------------------
 
         #------------------------------
         # Draw
@@ -109,19 +160,45 @@ class Module:
         # White BG.
         bg = self.int2rgb(0xFFFFFF)
         # Blank Canvas with White Border
-        canvas = Image.new("RGB", (self.size+2, self.size+2), bg)
+        canvas = Image.new("RGB", (size+2, size+2), bg)
         
         # Put data into each module.
-        for i in range(len(self.modules)):
-            for j in range(len(self.modules[i])):
-                if self.modules[i][j] is not None:
-                    canvas.putpixel((j+1,i+1), self.int2rgb(0) if self.modules[i][j] else self.int2rgb(0xFFFFFF))
+        for i in range(len(module.modules)):
+            for j in range(len(module.modules[i])):
+                if module.modules[i][j] is not None:
+                    canvas.putpixel((j+1,i+1), self.int2rgb(0) if module.modules[i][j] else self.int2rgb(0xFFFFFF))
 
         # Resize
         canvas = canvas.resize((400, 400), Image.NEAREST)
 
         # Save
         canvas.save("QR.png", "PNG", optimize=True)
+
+
+    #****************************************************************************************************
+    #--------------------------------------------------
+    # Converter: Convert Integer to RGB/RGBA as tuple
+    #--------------------------------------------------
+    def int2rgb(self, value: int):
+        return ((value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
+
+    def int2rgba(self, value: int):
+        return ((value >> 24) & 0xFF, (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
+
+
+####################################################################################################
+# Module
+####################################################################################################
+class Module:
+    def __init__(self, dataBuffer: BitBuffer, errorCorrection: ErrorCorrection, version: int, maskNumber: int = 0):
+        #------------------------------
+        # Assign variable to member
+        #------------------------------
+        self.version = version
+        self.errorCorrection = errorCorrection
+        self.size = (version * 4) + 17 # Equivalent to (((version - 1) * 4) + 21)
+
+        self.makeModule(dataBuffer, maskNumber)
 
 
     #****************************************************************************************************
@@ -696,17 +773,6 @@ class Module:
         score = (abs(percent - 50) // 5) * 10
 
         return score
-
-
-    #****************************************************************************************************
-    #--------------------------------------------------
-    # Converter: Convert Integer to RGB/RGBA as tuple
-    #--------------------------------------------------
-    def int2rgb(self, value: int):
-        return ((value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
-
-    def int2rgba(self, value: int):
-        return ((value >> 24) & 0xFF, (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
 
 
 ####################################################################################################

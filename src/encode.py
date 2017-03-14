@@ -4,7 +4,7 @@ from src.constants import *
 from src.rsBlocks import *
 from src.gf256 import Polynomial
 from src.look_up_table import CapacityTable, GeneratorPolynomial
-from src.module_placement import Module
+from src.module_placement import QR
 
 """
 ### create() function ###
@@ -289,7 +289,7 @@ def create(dataString: str, ecLevel: ErrorCorrection = None, version: int = None
     #------------------------------
     # Create
     #------------------------------
-    Module(msg, ecLevel, version)
+    QR(msg, ecLevel, version)
 
 
     ## Debug

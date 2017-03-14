@@ -50,3 +50,4 @@ Step 08
 - Optimize penalty score calculation
 - Find best fit version
 - Reconstruct project file & function definition & etc.
+- Using multiprocessing.Pool for speed test mask patterns

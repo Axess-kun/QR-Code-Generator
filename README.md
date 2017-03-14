@@ -18,6 +18,7 @@ pip install enum34
 *Run in `command-line`, NOT python interpreter.
 
 ### QR Code Tutorial Documents & References
+- [What is QR Code?](http://www.qrcode.com/en/)
 - `Mainly Tutorial >>` [Thonky] for all entire tutorials.
 - [QRCODE layout](http://www.pclviewer.com/rs2/qrtopology.htm) for a little more description of module placement.
 - [Reed-Solomon codes for coders](https://en.wikiversity.org/wiki/Reed%E2%80%93Solomon_codes_for_coders)
@@ -29,6 +30,8 @@ pip install enum34
 - [Accessing list through index](http://d.hatena.ne.jp/yumimue/20071205/1196839438)
 - [Regular Expression #1](http://ja.pymotw.com/2/re/)
 - [Regular Expression #2](https://www.tutorialspoint.com/python/python_reg_expressions.htm)
+- [Pool #1](http://stackoverflow.com/questions/1704401/is-there-a-simple-process-based-parallel-map-for-python)
+- [Pool #2](http://matsulib.hatenablog.jp/entry/2014/06/19/001050)
 
 ##### Notes
 Most of look up table are copied from [Thonky] tables.
@@ -36,6 +39,10 @@ Then, edit in Notepad++ and copy to python file.
 
 Each step of debugging, generated QR codes from this project are compare with [Thonky] & [RACO Industries](https://racoindustries.com/barcodegenerator/2d/qr-code/).
 
+### License
+By the way, feel free to study & use.
+
+Or maybe this one should be okay? >> [MPL v2.0](https://www.mozilla.org/en-US/MPL/2.0/)
 
 [//]: # (Reference links. See more infos @ http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
 
