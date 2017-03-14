@@ -55,9 +55,9 @@ def create(dataString: str, ecLevel: ErrorCorrection = None, version: int = None
 
     #------------------------------
     # Check Version
+    #------------------------------
     if version is not None and (version < 1 or version > 40):
         raise ValueError("Wrong version!!")
-    #------------------------------
 
     #------------------------------
     # Create Bit Buffer
